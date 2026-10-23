@@ -1,0 +1,502 @@
+﻿<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qor Jangi - Yangi Yil Shukuhi Online ❄️🎄</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
+</head>
+<body>
+
+    <!-- Asosiy Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- O'YIN ICHIDAGI HUD (Jang paytida ko'rinadi) -->
+    <div class="ui-overlay" id="inGameHUD">
+        <header class="hud-top">
+            <div class="hud-title-badge interactive">
+                <span>❄️</span>
+                <h1>QOR JANGI</h1>
+                <span class="room-tag" id="hudRoomTag">1 vs 1</span>
+            </div>
+
+            <div class="match-score-board" id="scoreBoard">
+                <div class="team-score blue" id="scoreBlueContainer">
+                    <span>Ko'k:</span> <span class="score-num" id="scoreBlue">0</span>
+                </div>
+                <div class="match-timer" id="matchTimer">03:00</div>
+                <div class="team-score red" id="scoreRedContainer">
+                    <span>Qizil:</span> <span class="score-num" id="scoreRed">0</span>
+                </div>
+            </div>
+
+            <div class="hud-controls interactive">
+                <button class="icon-btn" id="btnMusic" title="Musiqa (Yoqish/O'chirish)">🎵</button>
+                <button class="icon-btn" id="btnSfx" title="Ovoz effektlari (Yoqish/O'chirish)">🔊</button>
+                <button class="icon-btn" id="btnPause" title="Pauza (P / Esc)">⏸️</button>
+            </div>
+        </header>
+
+        <!-- Nozik va ixcham Kill Feed (Faqat muhim voqealar) -->
+        <div class="kill-feed" id="killFeed"></div>
+
+        <footer class="hud-bottom">
+            <div class="player-status-card interactive">
+                <div class="player-info-row">
+                    <span class="player-name-hud" id="hudPlayerName">QorJangchisi</span>
+                    <span id="hudHpText" style="font-weight: 800; font-size: 0.9rem; color: #70d6ff;">100 HP</span>
+                </div>
+                <div class="hp-bar-container">
+                    <div class="hp-bar-fill" id="hudHpBar"></div>
+                </div>
+                <div class="snowballs-inventory">
+                    <span style="font-size: 0.85rem; font-weight: 800;">Qorlar:</span>
+                    <div class="snowball-slots" id="snowballSlots">
+                        <div class="snowball-slot filled"></div>
+                        <div class="snowball-slot filled"></div>
+                        <div class="snowball-slot filled"></div>
+                        <div class="snowball-slot"></div>
+                        <div class="snowball-slot"></div>
+                    </div>
+                    <span class="craft-hint">[SPACE] Yerdan qor olish</span>
+                </div>
+            </div>
+
+            <div class="controls-guide-bar">
+                <span><span class="key-badge">W,A,S,D</span> Harakat</span>
+                <span><span class="key-badge">Sichqoncha</span> Nishon & Otish</span>
+                <span><span class="key-badge">Space</span> Qor yumaloqlash</span>
+                <span><span class="key-badge">P / Esc</span> Pauza</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- =======================================================
+         ZAMONAVIY PROFESSIONAL BOSH MENYU (LOBBY DASHBOARD)
+         ======================================================= -->
+    <div class="main-lobby-screen interactive" id="mainLobbyScreen">
+        <!-- Yuqori qator (Header) -->
+        <header class="lobby-header">
+            <!-- Profil Kartasi (Chapda) -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="profile-card" id="btnProfileCard" title="Profil ma'lumotlari">
+                    <div class="profile-avatar-wrapper">⛄</div>
+                    <div class="profile-text-info">
+                        <span class="profile-name" id="lobbyPlayerName">QorJangchisi ✏️</span>
+                        <div class="profile-badges">
+                            <span class="badge-trophy">🏆 <span id="lobbyTrophies">1,250</span></span>
+                            <span class="badge-level">⭐ <span id="lobbyLevel">5-Daraja</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="coin-badge" title="Sizning tangalaringiz">
+                    🪙 <span id="lobbyCoinsText">100</span>
+                </div>
+            </div>
+
+            <!-- Markaziy Brend Logo -->
+            <div class="lobby-brand-center">
+                <h1>❄️ QOR JANGI 🎄</h1>
+                <p>Yangi Yil Shukuhi • Online Multiplayer Arena</p>
+            </div>
+
+            <!-- O'ngdagi Qo'shimcha Menyu, Musiqa va Sozlamalar -->
+            <div class="lobby-top-right">
+                <button class="btn-room-action" id="btnOpenShop" style="padding: 7px 12px; width: auto; font-size: 0.88rem;">
+                    🛒 Do'kon
+                </button>
+                <button class="btn-room-action" id="btnOpenQuests" style="padding: 7px 12px; width: auto; font-size: 0.88rem;">
+                    📜 Vazifalar
+                </button>
+                <button class="btn-room-action" id="btnOpenLeaderboard" style="padding: 7px 12px; width: auto; font-size: 0.88rem;">
+                    🏆 Reyting
+                </button>
+
+                <div class="music-player-pill">
+                    <button class="music-ctrl-btn" id="btnPrevTrack" title="Oldingi trek">⏮️</button>
+                    <button class="music-ctrl-btn" id="btnTogglePlayMusic" title="Musiqa">🔔</button>
+                    <span class="music-track-name" id="currentTrackDisplay">🔔 Jingle Bells</span>
+                    <button class="music-ctrl-btn" id="btnNextTrack" title="Keyingi trek">⏭️</button>
+                </div>
+                <button class="icon-btn" id="btnOpenSettings" title="Sozlamalar">⚙️</button>
+            </div>
+        </header>
+
+        <!-- 3 Ustunli Bosh Menyu Asosiy Qismi -->
+        <main class="lobby-main-body">
+            <!-- 1. Chap Ustun: Rejim va Xarita -->
+            <div class="lobby-panel-box">
+                <div class="panel-section-title">
+                    <span>🎮</span> O'yin Rejimi
+                </div>
+                <div class="mode-pill-list">
+                    <div class="mode-pill active" data-mode="1v1">
+                        <div class="mode-pill-left">
+                            <span class="mode-pill-icon">🥊</span>
+                            <span class="mode-pill-title">1 vs 1 Duel</span>
+                        </div>
+                        <span class="mode-pill-slots">2 O'yinchi</span>
+                    </div>
+                    <div class="mode-pill" data-mode="2v2">
+                        <div class="mode-pill-left">
+                            <span class="mode-pill-icon">👥</span>
+                            <span class="mode-pill-title">2 vs 2 Jamoa</span>
+                        </div>
+                        <span class="mode-pill-slots">4 O'yinchi</span>
+                    </div>
+                    <div class="mode-pill" data-mode="4v4">
+                        <div class="mode-pill-left">
+                            <span class="mode-pill-icon">🛡️</span>
+                            <span class="mode-pill-title">4 vs 4 Squad</span>
+                        </div>
+                        <span class="mode-pill-slots">8 O'yinchi</span>
+                    </div>
+                    <div class="mode-pill" data-mode="ffa">
+                        <div class="mode-pill-left">
+                            <span class="mode-pill-icon">💥</span>
+                            <span class="mode-pill-title">Battle Royale</span>
+                        </div>
+                        <span class="mode-pill-slots">Yakkaxon</span>
+                    </div>
+                </div>
+
+                <div class="panel-section-title" style="margin-top: 10px;">
+                    <span>🗺️</span> Xarita (3 Ta Katta Dunyo)
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <div class="mode-pill active" data-map="wonderland" style="flex: 1; text-align: center; justify-content: center; padding: 8px 4px;">
+                        <span class="mode-pill-title" style="font-size: 0.85rem;">🎄 Shaharcha</span>
+                    </div>
+                    <div class="mode-pill" data-map="fortress" style="flex: 1; text-align: center; justify-content: center; padding: 8px 4px;">
+                        <span class="mode-pill-title" style="font-size: 0.85rem;">🏰 Qal'a</span>
+                    </div>
+                    <div class="mode-pill" data-map="forest" style="flex: 1; text-align: center; justify-content: center; padding: 8px 4px;">
+                        <span class="mode-pill-title" style="font-size: 0.85rem;">🌲 O'rmon</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Markaziy Ustun: Qahramon Ko'rgazmasi (Podium) -->
+            <div class="hero-stage-container">
+                <div class="stage-hero-canvas-wrap">
+                    <canvas id="heroPreviewCanvas" width="180" height="200"></canvas>
+                </div>
+                <div class="stage-pedestal"></div>
+
+                <!-- Personaj uslubi tanlovi (Odamcha vs Yumaloq) -->
+                <div class="character-type-switch">
+                    <button class="type-switch-btn active" id="btnTypeHuman" data-type="human">🧍 Odamcha</button>
+                    <button class="type-switch-btn" id="btnTypeClassic" data-type="classic">⚪ Yumaloq</button>
+                </div>
+
+                <!-- Libos ranglari -->
+                <div class="color-picker-row">
+                    <div class="color-circle active" style="background: #e63946;" data-color="#e63946" title="Santa Qizil"></div>
+                    <div class="color-circle" style="background: #4cc9f0;" data-color="#4cc9f0" title="Muz Ko'k"></div>
+                    <div class="color-circle" style="background: #06d6a0;" data-color="#06d6a0" title="Yashil Archa"></div>
+                    <div class="color-circle" style="background: #ffd166;" data-color="#ffd166" title="Oltin Quyosh"></div>
+                    <div class="color-circle" style="background: #b5179e;" data-color="#b5179e" title="Bayramona Binafsha"></div>
+                </div>
+            </div>
+
+            <!-- 3. O'ng Ustun: Xona va Amallar Boshqaruvi -->
+            <div class="lobby-actions-column">
+                <button class="btn-action-big play" id="btnQuickPlay">
+                    <span>🚀</span> TEZKOR JANG
+                </button>
+
+                <button class="btn-room-action" id="btnOpenCreateRoom">
+                    <span>➕</span> Xona Yaratish (Create Room)
+                </button>
+
+                <button class="btn-room-action" id="btnOpenJoinRoom">
+                    <span>🔑</span> Xona Kodi bilan Kirish
+                </button>
+
+                <button class="btn-room-action" id="btnOpenBrowseRooms">
+                    <span>📋</span> Ochiq Xonalar Ro'yxati
+                </button>
+
+                <button class="btn-room-action" id="btnPlayBots" style="background: rgba(6, 214, 160, 0.15); border-color: #06d6a0;">
+                    <span>🤖</span> Botlar bilan Mashq (Offline)
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- =======================================================
+         MODALLAR
+         ======================================================= -->
+
+    <!-- 1. XONA YARATISH MODALI -->
+    <div class="modal-backdrop interactive hidden" id="createRoomModal">
+        <div class="modal-card">
+            <button class="modal-close-btn" data-close="createRoomModal">✕</button>
+            <h2>➕ XONA YARATISH</h2>
+            <p class="modal-subtitle">Do'stlaringiz bilan birga o'ynash uchun maxsus xona oching</p>
+
+            <div class="input-group">
+                <label class="input-label" for="customRoomCodeInput">Xona Kodi (Ixtiyoriy yoki avtomatik):</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="customRoomCodeInput" class="custom-input" placeholder="Masalan: SNOW77" maxlength="10">
+                    <button class="btn-copy-code" id="btnGenCode" style="white-space: nowrap;">🎲 Tasodifiy</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" for="customRoomNameInput">Xona Nomi:</label>
+                <input type="text" id="customRoomNameInput" class="custom-input" placeholder="Mening qor jangi xonam" maxlength="24">
+            </div>
+
+            <button class="btn-action-big play" id="btnConfirmCreateRoom" style="width: 100%; margin-top: 10px;">
+                <span>✨</span> XONANI OCHISH VA KIRISH
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. KOD BILAN KIRISH MODALI -->
+    <div class="modal-backdrop interactive hidden" id="joinRoomModal">
+        <div class="modal-card" style="max-width: 440px;">
+            <button class="modal-close-btn" data-close="joinRoomModal">✕</button>
+            <h2>🔑 XONAGA KIRISH</h2>
+            <p class="modal-subtitle">Do'stingiz bergan xona kodini kiriting</p>
+
+            <div class="input-group">
+                <label class="input-label" for="joinCodeInput">Xona Kodi:</label>
+                <input type="text" id="joinCodeInput" class="custom-input" placeholder="QOR-XXXX yoki kod..." maxlength="12" style="text-align: center; font-size: 1.3rem; letter-spacing: 2px;">
+            </div>
+
+            <button class="btn-action-big play" id="btnConfirmJoinRoom" style="width: 100%; margin-top: 10px;">
+                <span>🚀</span> XONAGA ULANISH
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. XONA KUTISH LOBBISI (Waiting Lobby) -->
+    <div class="modal-backdrop interactive hidden" id="roomWaitingModal">
+        <div class="modal-card" style="max-width: 600px;">
+            <button class="modal-close-btn" data-close="roomWaitingModal">✕</button>
+            <h2 id="waitingRoomTitle">🏆 QOR JANGI XONASI</h2>
+            <p class="modal-subtitle">Do'stlar to'planishini kuting va tayyor bo'ling</p>
+
+            <div class="room-code-display-box">
+                <div>
+                    <small style="color: #a8dadc; display: block;">DO'STLARNI CHAQIRISH KODI:</small>
+                    <span class="room-code-text" id="waitingRoomCode">QOR-0000</span>
+                </div>
+                <button class="btn-copy-code" id="btnCopyWaitingCode">📋 Nusxalash</button>
+            </div>
+
+            <!-- Jamoalar qatorlari -->
+            <div class="room-slots-grid">
+                <div class="team-slot-box blue">
+                    <div class="team-slot-header" style="color: #4cc9f0;">🟦 Ko'k Jamoa</div>
+                    <div id="blueTeamSlotsList"></div>
+                </div>
+                <div class="team-slot-box red">
+                    <div class="team-slot-header" style="color: #ff4d6d;">🟥 Qizil Jamoa</div>
+                    <div id="redTeamSlotsList"></div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <button class="btn-room-action" id="btnSwitchTeam" style="flex: 1;">
+                    🔄 Jamoani Almashtirish
+                </button>
+                <button class="btn-room-action" id="btnToggleReady" style="flex: 1; background: rgba(6, 214, 160, 0.2); border-color: #06d6a0;">
+                    ✅ Tayyorman!
+                </button>
+            </div>
+
+            <button class="btn-action-big play" id="btnHostStartMatch" style="width: 100%; margin-top: 14px;">
+                <span>🚀</span> JANGNI BOSHLASH
+            </button>
+        </div>
+    </div>
+
+    <!-- 4. OCHIQ XONALAR RO'YXATI (Browse Rooms) -->
+    <div class="modal-backdrop interactive hidden" id="browseRoomsModal">
+        <div class="modal-card" style="max-width: 550px;">
+            <button class="modal-close-btn" data-close="browseRoomsModal">✕</button>
+            <h2>📋 OCHIQ XONALAR</h2>
+            <p class="modal-subtitle">Hozirda boshqa o'yinchilar ochgan faol xonalar</p>
+
+            <div class="rooms-list-container" id="roomsListContainer">
+                <p style="color: #a8dadc; padding: 20px;">Xonalar tekshirilmoqda...</p>
+            </div>
+
+            <button class="btn-room-action" id="btnRefreshRooms" style="width: 100%;">
+                🔄 Ro'yxatni Yangilash
+            </button>
+        </div>
+    </div>
+
+    <!-- 5. SOZLAMALAR MODALI (Settings) -->
+    <div class="modal-backdrop interactive hidden" id="settingsModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <button class="modal-close-btn" data-close="settingsModal">✕</button>
+            <h2>⚙️ SOZLAMALAR</h2>
+            <p class="modal-subtitle">O'yin, audio va ko'rinish sozlamalari</p>
+
+            <div class="input-group">
+                <label class="input-label">Musiqa (Trek Vibe):</label>
+                <select id="settingMusicSelect" class="custom-input" style="cursor: pointer;">
+                    <option value="0">🔔 Jingle Bells (Bayramona)</option>
+                    <option value="1">⚡ Neon Battle (Jangovar Vibe)</option>
+                    <option value="2">☕ Chill Winter (Sokin Lo-Fi)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Qahramon Ko'rinishi (Personaj):</label>
+                <select id="settingCharSelect" class="custom-input" style="cursor: pointer;">
+                    <option value="human">🧍 Odamcha (Chibi Runner)</option>
+                    <option value="classic">⚪ Yumaloq (Classic Snow Hero)</option>
+                </select>
+            </div>
+
+            <div class="input-group" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.25); padding: 12px 16px; border-radius: 12px;">
+                <span style="font-weight: 800;">Urilish xabarlari (Kill feed):</span>
+                <input type="checkbox" id="settingKillFeed" checked style="width: 20px; height: 20px; cursor: pointer;">
+            </div>
+
+            <button class="btn-action-big play" data-close="settingsModal" style="width: 100%; margin-top: 14px;">
+                Saqlash va Yopish
+            </button>
+        </div>
+    </div>
+
+    <!-- 6. PROFIL TAHRIRLASH MODALI -->
+    <div class="modal-backdrop interactive hidden" id="profileModal">
+        <div class="modal-card" style="max-width: 420px;">
+            <button class="modal-close-btn" data-close="profileModal">✕</button>
+            <h2>⛄ O'YINCHI PROFILI</h2>
+            <p class="modal-subtitle">Ismingiz va statistikangiz</p>
+
+            <div class="input-group">
+                <label class="input-label" for="editNameInput">O'yinchi Ismi (Nickname):</label>
+                <input type="text" id="editNameInput" class="custom-input" maxlength="16" value="QorJangchisi">
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); border-radius: 14px; padding: 14px; margin-bottom: 16px; text-align: left;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #a8dadc;">Daraja:</span>
+                    <strong style="color: #70d6ff;">5-Daraja (Qor Qoplon)</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: #a8dadc;">Kuboklar:</span>
+                    <strong style="color: #ffd166;">🏆 1,250</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #a8dadc;">Tekkizilgan qorlar:</span>
+                    <strong id="profileTotalHits">0 ta</strong>
+                </div>
+            </div>
+
+            <button class="btn-action-big play" id="btnSaveProfile" style="width: 100%;">
+                Saqlash
+            </button>
+        </div>
+    </div>
+
+    <!-- 7. PAUZA MODALI -->
+    <div class="modal-backdrop interactive hidden" id="pauseModal">
+        <div class="modal-card" style="max-width: 420px;">
+            <h2>⏸️ PAUZA</h2>
+            <p class="modal-subtitle">O'yin to'xtatildi<br><small style="color: #70d6ff; font-weight: 700; margin-top: 4px; display: inline-block;">[ENTER] yoki [ESC] bosib davom ettirishingiz mumkin</small></p>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+                <button class="btn-action-big play" id="btnResume">▶️ Davom Etish [ENTER]</button>
+                <button class="btn-room-action" id="btnRestart">🔄 Qayta Boshlash</button>
+                <button class="btn-room-action" id="btnToLobby">🏠 Bosh Menyu (Lobby)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. G'ALABA / MAG'LUBIYAT MODALI -->
+    <div class="modal-backdrop interactive hidden" id="gameOverModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="winner-banner victory" id="gameOverTitle">🏆 G'ALABA!</div>
+            <p class="modal-subtitle" id="gameOverDesc" style="font-size: 1.1rem; font-weight: 700;">
+                Siz raundda zafar quchdingiz!
+            </p>
+            <div style="background: rgba(0,0,0,0.3); border-radius: 14px; padding: 14px; margin: 18px 0;">
+                <div style="display: flex; justify-content: space-around; font-weight: 800; margin-bottom: 8px;">
+                    <div>Tekkizilgan: <span id="statHits" style="color: #70d6ff;">0</span></div>
+                    <div>Yiqitilgan: <span id="statKills" style="color: #ffd166;">0</span></div>
+                </div>
+                <div style="text-align: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                    <span style="color: #a8dadc;">Olingan mukofot: </span>
+                    <span id="matchCoinsEarned" style="color: #ffd166; font-size: 1.15rem; font-weight: 800;">+50 🪙</span>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn-action-big play" id="btnPlayAgain">🔄 Qayta O'ynash</button>
+                <button class="btn-room-action" id="btnGameOverLobby">🏠 Bosh Menyu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. DO'KON (SHOP) MODALI -->
+    <div class="modal-backdrop interactive hidden" id="shopModal">
+        <div class="modal-card" style="max-width: 620px;">
+            <button class="modal-close-btn" data-close="shopModal">✕</button>
+            <h2>🛒 QOR DO'KONI</h2>
+            <p class="modal-subtitle">
+                Tangalaringiz bilan yangi kiyim va sehrli qor to'plarini oling! 
+                <span class="coin-badge" style="margin-left: 8px;">🪙 <span id="shopCoinsDisplay">100</span></span>
+            </p>
+
+            <div class="panel-section-title" style="margin: 12px 0 8px 0;">
+                <span>👕</span> Qahramon Liboslari (Skins)
+            </div>
+            <div class="shop-catalog-grid" id="shopSkinsList"></div>
+
+            <div class="panel-section-title" style="margin: 12px 0 8px 0;">
+                <span>⚡</span> Qor Qurollari (Snowball Effects)
+            </div>
+            <div class="shop-catalog-grid" id="shopBallsList"></div>
+
+            <button class="btn-action-big play" data-close="shopModal" style="width: 100%; margin-top: 10px;">
+                Yopish
+            </button>
+        </div>
+    </div>
+
+    <!-- 10. VAZIFALAR (QUESTS) MODALI -->
+    <div class="modal-backdrop interactive hidden" id="questsModal">
+        <div class="modal-card" style="max-width: 520px;">
+            <button class="modal-close-btn" data-close="questsModal">✕</button>
+            <h2>📜 ZADACHALAR (VAZIFALAR)</h2>
+            <p class="modal-subtitle">Vazifalarni bajaring va ko'plab oltin tangalarni qo'lga kiriting!</p>
+
+            <div class="quests-list-box" id="questsListContainer"></div>
+
+            <button class="btn-action-big play" data-close="questsModal" style="width: 100%; margin-top: 10px;">
+                Yopish
+            </button>
+        </div>
+    </div>
+
+    <!-- 11. REYTING (LEADERBOARD) MODALI -->
+    <div class="modal-backdrop interactive hidden" id="leaderboardModal">
+        <div class="modal-card" style="max-width: 560px;">
+            <button class="modal-close-btn" data-close="leaderboardModal">✕</button>
+            <h2>🏆 REYTING (LEADERBOARD)</h2>
+            <p class="modal-subtitle">Serverning eng kuchli qor jangchilari (Top 1, Top 2, Top 3, Top 100 va 500)</p>
+
+            <div class="leaderboard-list-box" id="leaderboardList"></div>
+
+            <button class="btn-action-big play" data-close="leaderboardModal" style="width: 100%; margin-top: 10px;">
+                Yopish
+            </button>
+        </div>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+    <script src="shop_quests.js"></script>
+    <script src="lobby.js"></script>
+</body>
+</html>

@@ -1,0 +1,1140 @@
+/* style.css - Qor Jangi (Snow Clash Online) Professional Yangi Yil Dizayni */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+    --bg-dark: #071324;
+    --ice-blue: #70d6ff;
+    --snow-white: #f8fbff;
+    --festive-red: #ff3366;
+    --festive-gold: #ffd166;
+    --tree-green: #06d6a0;
+    --card-bg: rgba(14, 30, 56, 0.82);
+    --card-border: rgba(112, 214, 255, 0.35);
+    --glass-shadow: 0 10px 35px 0 rgba(0, 15, 45, 0.55);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    background: radial-gradient(circle at 50% 25%, #15325b 0%, #061120 100%);
+    color: var(--snow-white);
+}
+
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* UI Overlay */
+.ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 10;
+}
+
+.interactive {
+    pointer-events: auto;
+}
+
+/* HUD Top */
+.hud-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: linear-gradient(180deg, rgba(6, 17, 32, 0.9) 0%, rgba(6, 17, 32, 0) 100%);
+}
+
+.hud-title-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card-bg);
+    padding: 8px 18px;
+    border-radius: 40px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--glass-shadow);
+}
+
+.hud-title-badge h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.35rem;
+    color: var(--ice-blue);
+    text-shadow: 0 0 12px rgba(112, 214, 255, 0.5);
+}
+
+.room-tag {
+    background: linear-gradient(135deg, var(--festive-red), #e60049);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.match-score-board {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: var(--card-bg);
+    padding: 8px 24px;
+    border-radius: 40px;
+    border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--glass-shadow);
+}
+
+.team-score {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.team-score.blue { color: #4cc9f0; }
+.team-score.red { color: #ff4d6d; }
+.score-num { font-family: 'Fredoka One', cursive; font-size: 1.6rem; }
+.match-timer {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--festive-gold);
+    min-width: 60px;
+    text-align: center;
+}
+
+.hud-controls {
+    display: flex;
+    gap: 10px;
+    pointer-events: auto !important;
+    z-index: 60;
+}
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(14, 30, 56, 0.9);
+    border: 1.5px solid var(--card-border);
+    color: var(--snow-white);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    backdrop-filter: blur(8px);
+    box-shadow: var(--glass-shadow);
+    pointer-events: auto !important;
+    z-index: 60;
+}
+
+.icon-btn:hover {
+    transform: scale(1.1);
+    background: rgba(112, 214, 255, 0.3);
+    border-color: var(--ice-blue);
+    box-shadow: 0 0 16px rgba(112, 214, 255, 0.5);
+}
+
+.icon-btn.muted {
+    opacity: 0.55;
+    background: rgba(8, 18, 34, 0.6);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Pastki panel */
+.hud-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 12px 20px;
+    background: linear-gradient(0deg, rgba(6, 17, 32, 0.75) 0%, rgba(6, 17, 32, 0) 100%);
+    pointer-events: none;
+}
+
+.player-status-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(10, 24, 46, 0.65);
+    padding: 8px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(112, 214, 255, 0.28);
+    backdrop-filter: blur(10px);
+    min-width: 195px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    z-index: 30;
+}
+
+.player-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-name-hud {
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: var(--snow-white);
+}
+
+.hp-bar-container {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hp-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #06d6a0, #70d6ff);
+    border-radius: 8px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px rgba(6, 214, 160, 0.5);
+}
+
+.hp-bar-fill.danger {
+    background: linear-gradient(90deg, #ff0055, #ff5400);
+}
+
+.snowballs-inventory {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.snowball-slots {
+    display: flex;
+    gap: 5px;
+}
+
+.snowball-slot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1.5px dashed rgba(112, 214, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.snowball-slot.filled {
+    background: radial-gradient(circle at 35% 35%, #ffffff, #c2e9fb);
+    border: 1.5px solid #70d6ff;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+    transform: scale(1.05);
+}
+
+.craft-hint {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ice-blue);
+    background: rgba(112, 214, 255, 0.12);
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid rgba(112, 214, 255, 0.25);
+}
+
+/* NOZIK VA IXCHAM KILL FEED (Yuqori burchakda xalaqit bermaydi) */
+.kill-feed {
+    position: absolute;
+    top: 80px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 300px;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.feed-item {
+    background: rgba(10, 24, 46, 0.7);
+    border: 1px solid rgba(112, 214, 255, 0.2);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #e2f1fc;
+    animation: fadeInSlide 0.25s ease, fadeOut 0.3s ease 2.9s forwards;
+    backdrop-filter: blur(4px);
+}
+
+@keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========================================================
+   ZAMONAVIY BOSH MENYU (LOBBY DASHBOARD)
+   ======================================================== */
+.main-lobby-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px 30px;
+    z-index: 50;
+    background: radial-gradient(circle at 50% 35%, rgba(18, 44, 82, 0.85) 0%, rgba(6, 17, 32, 0.95) 100%);
+    backdrop-filter: blur(8px);
+}
+
+.main-lobby-screen.hidden {
+    display: none !important;
+}
+
+/* Lobby Yuqori qismi */
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Profil kartasi (Chapda) */
+.profile-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 8px 18px 8px 10px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--glass-shadow);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.profile-card:hover {
+    transform: scale(1.02);
+    border-color: var(--ice-blue);
+}
+
+.profile-avatar-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffd166, #ff7b00);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    box-shadow: 0 0 14px rgba(255, 209, 102, 0.6);
+    border: 2px solid #ffffff;
+}
+
+.profile-text-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-name {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--snow-white);
+}
+
+.profile-badges {
+    display: flex;
+    gap: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.badge-trophy { color: var(--festive-gold); }
+.badge-level { color: var(--ice-blue); }
+
+/* Markazdagi Yangi Yil Logotipi */
+.lobby-brand-center {
+    text-align: center;
+}
+
+.lobby-brand-center h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    color: var(--ice-blue);
+    text-shadow: 0 0 20px rgba(112, 214, 255, 0.6);
+    letter-spacing: 1px;
+}
+
+.lobby-brand-center p {
+    font-size: 0.9rem;
+    color: #a8dadc;
+    letter-spacing: 0.5px;
+}
+
+/* O'ng tarafdagi Menu & Audio vidjet */
+.lobby-top-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.music-player-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 6px 14px;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--festive-gold);
+}
+
+.music-track-name {
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-ctrl-btn {
+    background: none;
+    border: none;
+    color: var(--snow-white);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: transform 0.15s;
+}
+
+.music-ctrl-btn:hover {
+    transform: scale(1.2);
+    color: var(--ice-blue);
+}
+
+/* ========================================================
+   LOBBY ASOSIY QISMI (3 USTUNLI ZAMONAVIY GRID)
+   ======================================================== */
+.lobby-main-body {
+    display: grid;
+    grid-template-columns: 310px 1fr 310px;
+    gap: 24px;
+    align-items: center;
+    height: calc(100% - 130px);
+}
+
+/* Chap ustun: Rejim va Xarita */
+.lobby-panel-box {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.panel-section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--ice-blue);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Rejim tanlash qatorlari */
+.mode-pill-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mode-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 24, 46, 0.6);
+    border: 2px solid rgba(112, 214, 255, 0.2);
+    padding: 10px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-pill:hover {
+    border-color: var(--ice-blue);
+    background: rgba(20, 48, 86, 0.5);
+}
+
+.mode-pill.active {
+    border-color: var(--ice-blue);
+    background: linear-gradient(135deg, rgba(112, 214, 255, 0.25), rgba(6, 214, 160, 0.25));
+    box-shadow: 0 0 14px rgba(112, 214, 255, 0.35);
+}
+
+.mode-pill-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mode-pill-icon { font-size: 1.3rem; }
+.mode-pill-title { font-weight: 800; font-size: 0.95rem; }
+.mode-pill-slots { font-size: 0.8rem; font-weight: 700; color: #a8dadc; }
+
+/* Markaziy qism: Qahramon Ko'rgazmasi (Podium) */
+.hero-stage-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 100%;
+}
+
+.stage-pedestal {
+    width: 220px;
+    height: 45px;
+    background: radial-gradient(ellipse at center, rgba(112, 214, 255, 0.6) 0%, rgba(10, 24, 48, 0) 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(112, 214, 255, 0.4);
+    position: absolute;
+    bottom: 85px;
+}
+
+.stage-hero-canvas-wrap {
+    width: 200px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+#heroPreviewCanvas {
+    width: 180px;
+    height: 200px;
+}
+
+/* Personaj turi (Odamcha vs Yumaloq) tanlash */
+.character-type-switch {
+    display: flex;
+    background: rgba(8, 20, 38, 0.7);
+    border: 2px solid var(--card-border);
+    border-radius: 30px;
+    padding: 4px;
+    gap: 4px;
+    margin-top: 10px;
+    z-index: 5;
+}
+
+.type-switch-btn {
+    background: none;
+    border: none;
+    color: var(--snow-white);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.type-switch-btn.active {
+    background: linear-gradient(135deg, #06d6a0, #118ab2);
+    box-shadow: 0 4px 12px rgba(6, 214, 160, 0.4);
+}
+
+/* Rang tanlash aylanachalari */
+.color-picker-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    z-index: 5;
+}
+
+.color-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.color-circle:hover { transform: scale(1.15); }
+.color-circle.active {
+    transform: scale(1.22);
+    border-color: #ffffff;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
+}
+
+/* O'ng ustun: Amallar va Xonalar boshqaruvi */
+.lobby-actions-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-action-big {
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 18px;
+    color: #ffffff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    letter-spacing: 0.5px;
+}
+
+.btn-action-big.play {
+    background: linear-gradient(135deg, #06d6a0, #00b4d8);
+    box-shadow: 0 8px 25px rgba(6, 214, 160, 0.45);
+}
+
+.btn-action-big.play:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(6, 214, 160, 0.65);
+}
+
+.btn-room-action {
+    width: 100%;
+    padding: 13px 18px;
+    border-radius: 15px;
+    background: rgba(14, 32, 60, 0.85);
+    border: 1px solid var(--card-border);
+    color: var(--snow-white);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-room-action:hover {
+    background: rgba(24, 52, 94, 0.9);
+    border-color: var(--ice-blue);
+    transform: translateY(-2px);
+}
+
+/* ========================================================
+   MODALLAR: XONA YARATISH, QO'SHILISH, SOZLAMALAR
+   ======================================================== */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(4, 12, 24, 0.82);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    transition: opacity 0.25s ease;
+}
+
+.modal-backdrop.hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.modal-card {
+    background: linear-gradient(135deg, rgba(16, 38, 70, 0.96), rgba(8, 20, 38, 0.98));
+    border: 2px solid rgba(112, 214, 255, 0.4);
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(112, 214, 255, 0.2);
+    border-radius: 26px;
+    padding: 32px 38px;
+    width: 90%;
+    max-width: 520px;
+    text-align: center;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    background: none;
+    border: none;
+    color: #a8dadc;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.modal-close-btn:hover { color: var(--festive-red); }
+
+.modal-card h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.9rem;
+    color: var(--ice-blue);
+    margin-bottom: 6px;
+}
+
+.modal-subtitle {
+    font-size: 0.9rem;
+    color: #a8dadc;
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 18px;
+    text-align: left;
+}
+
+.input-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--ice-blue);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.custom-input {
+    width: 100%;
+    background: rgba(6, 17, 34, 0.85);
+    border: 2px solid rgba(112, 214, 255, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--snow-white);
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    outline: none;
+}
+
+.custom-input:focus {
+    border-color: var(--ice-blue);
+    box-shadow: 0 0 14px rgba(112, 214, 255, 0.4);
+}
+
+/* XONA KUTISH LOBBISI (Room Waiting Room) */
+.room-slots-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+}
+
+.team-slot-box {
+    background: rgba(10, 24, 46, 0.7);
+    border: 2px solid rgba(112, 214, 255, 0.25);
+    border-radius: 16px;
+    padding: 14px;
+    min-height: 180px;
+}
+
+.team-slot-box.blue { border-color: #4cc9f0; }
+.team-slot-box.red { border-color: #ff4d6d; }
+
+.team-slot-header {
+    font-weight: 800;
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-slot-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.slot-ready-tag {
+    color: #06d6a0;
+    font-weight: 800;
+}
+
+.room-code-display-box {
+    background: rgba(8, 20, 38, 0.8);
+    border: 2px dashed var(--ice-blue);
+    border-radius: 14px;
+    padding: 12px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.room-code-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: var(--festive-gold);
+    letter-spacing: 2px;
+}
+
+.btn-copy-code {
+    background: rgba(112, 214, 255, 0.2);
+    border: 1px solid var(--ice-blue);
+    color: var(--snow-white);
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.btn-copy-code:hover {
+    background: var(--ice-blue);
+    color: #000;
+}
+
+/* Ochiq xonalar ro'yxati */
+.rooms-list-container {
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.room-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 24, 46, 0.8);
+    border: 1px solid rgba(112, 214, 255, 0.25);
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+
+.room-item-name { font-weight: 800; }
+.room-item-mode { font-size: 0.8rem; color: #a8dadc; }
+.btn-join-room-row {
+    background: #06d6a0;
+    border: none;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* Klaviatura yo'riqnomasi */
+.controls-guide-bar {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8, 18, 34, 0.45);
+    border: 1px solid rgba(112, 214, 255, 0.2);
+    padding: 4px 16px;
+    border-radius: 20px;
+    display: flex;
+    gap: 14px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #c2e9fb;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.key-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+/* G'alaba ekrani */
+.winner-banner {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+}
+
+.winner-banner.victory { color: var(--festive-gold); }
+.winner-banner.defeat { color: var(--festive-red); }
+
+/* TANGA BADJIKLARI (Coins) */
+.coin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 209, 102, 0.15);
+    border: 1px solid rgba(255, 209, 102, 0.4);
+    padding: 4px 12px;
+    border-radius: 20px;
+    color: var(--festive-gold);
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+/* ========================================================
+   DO'KON (SHOP) STYLES
+   ======================================================== */
+.shop-catalog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.shop-item-card {
+    background: rgba(10, 24, 46, 0.75);
+    border: 2px solid rgba(112, 214, 255, 0.25);
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.shop-item-card.equipped {
+    border-color: #06d6a0;
+    background: rgba(6, 214, 160, 0.12);
+}
+
+.shop-item-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--snow-white);
+    margin-bottom: 4px;
+}
+
+.shop-item-desc {
+    font-size: 0.75rem;
+    color: #a8dadc;
+    margin-bottom: 10px;
+}
+
+.btn-shop-action {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-shop-action.buy {
+    background: linear-gradient(135deg, #ffd166, #ff9f1c);
+    color: #000;
+}
+
+.btn-shop-action.buy:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+    cursor: not-allowed;
+}
+
+.btn-shop-action.equip {
+    background: #00b4d8;
+    color: #fff;
+}
+
+.btn-shop-action.equipped {
+    background: rgba(6, 214, 160, 0.25);
+    color: #06d6a0;
+    border: 1px solid #06d6a0;
+}
+
+/* ========================================================
+   VAZIFALAR (QUESTS) STYLES
+   ======================================================== */
+.quests-list-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 14px 0;
+}
+
+.quest-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 24, 46, 0.75);
+    border: 1px solid rgba(112, 214, 255, 0.25);
+    padding: 12px 16px;
+    border-radius: 14px;
+    text-align: left;
+}
+
+.quest-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.quest-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd166, #06d6a0);
+    border-radius: 8px;
+    transition: width 0.3s;
+}
+
+.btn-quest-claim {
+    padding: 8px 14px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-quest-claim.ready {
+    background: linear-gradient(135deg, #06d6a0, #00b4d8);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(6, 214, 160, 0.5);
+}
+
+.btn-quest-claim.claimed {
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+}
+
+/* ========================================================
+   REYTING (LEADERBOARD) STYLES
+   ======================================================== */
+.leaderboard-list-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin: 14px 0;
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 24, 46, 0.75);
+    border: 1px solid rgba(112, 214, 255, 0.2);
+    padding: 10px 16px;
+    border-radius: 12px;
+}
+
+.leaderboard-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.leaderboard-row.top1 {
+    border-color: #ffd166;
+    background: rgba(255, 209, 102, 0.12);
+}
+.leaderboard-row.top1 .leaderboard-rank {
+    background: #ffd166;
+    color: #000;
+}
+
+.leaderboard-row.top2 {
+    border-color: #c0c0c0;
+    background: rgba(192, 192, 192, 0.1);
+}
+.leaderboard-row.top2 .leaderboard-rank {
+    background: #c0c0c0;
+    color: #000;
+}
+
+.leaderboard-row.top3 {
+    border-color: #cd7f32;
+    background: rgba(205, 127, 50, 0.1);
+}
+.leaderboard-row.top3 .leaderboard-rank {
+    background: #cd7f32;
+    color: #fff;
+}
+
+.leaderboard-row.my-rank {
+    border-color: #06d6a0;
+    background: rgba(6, 214, 160, 0.15);
+    margin-top: 6px;
+}
+
+.leaderboard-rank.my {
+    background: #06d6a0;
+    color: #000;
+}
+
+/* Mobil moslashuv */
+@media (max-width: 900px) {
+    .lobby-main-body {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+    .hero-stage-container {
+        order: -1;
+        margin-bottom: 20px;
+    }
+    .controls-guide-bar { display: none; }
+}
