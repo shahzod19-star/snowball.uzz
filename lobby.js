@@ -371,6 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (msg.type === 'room_created' || msg.type === 'room_joined') {
             currentRoomInfo = msg.room;
             isHost = (msg.type === 'room_created');
+            if (msg.yourId) {
+                game.playerId = msg.yourId;
+                if (game.localPlayer) game.localPlayer.id = msg.yourId;
+            }
             showWaitingLobby(msg.room, msg.players);
         } else if (msg.type === 'player_joined_lobby' || msg.type === 'lobby_players_update' || msg.type === 'player_left_lobby') {
             currentRoomInfo = msg.room || currentRoomInfo;
@@ -379,7 +383,15 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal(roomWaitingModal);
             mainLobbyScreen.classList.add('hidden');
             const myPlayerObj = (msg.players || []).find(p => p.id === game.playerId);
-            const myTeam = myPlayerObj ? myPlayerObj.team : (game.localPlayer.team || 'blue');
+            const myTeam = myPlayerObj ? myPlayerObj.team : ((game.localPlayer && game.localPlayer.team) ? game.localPlayer.team : 'blue');
+            const totalPlayers = (msg.players || []).length;
+            const maxPlayers = (msg.room && msg.room.maxPlayers) ? msg.room.maxPlayers : getMaxPlayersForMode(msg.room ? msg.room.mode : selectedMode);
+            const needBots = totalPlayers < maxPlayers;
+
+            sound.init();
+            sound.resume();
+            syncAudioButtonsUI();
+
             game.startMatch({
                 name: playerName,
                 color: playerColor,
@@ -389,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 roomCode: msg.room.roomId,
                 team: myTeam,
                 isMultiplayer: true,
-                useBots: false
+                useBots: needBots
             });
         } else if (msg.type === 'state_sync') {
             for (let p of msg.players) {
@@ -438,8 +450,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // -------------------------------------------------------------
-    // 6. XONA YARATISH (CREATE ROOM)
+    // 6. XONA YARATISH (CREATE ROOM) VA OFFLINE/ONLINE BOSHQARUV
     // -------------------------------------------------------------
+    function getMaxPlayersForMode(mode) {
+        if (mode === '1v1') return 2;
+        if (mode === '2v2') return 4;
+        if (mode === '3v3') return 6;
+        if (mode === '4v4') return 8;
+        return 6;
+    }
+
+    let localRoomPlayers = [];
+    let localPlayerTeam = 'blue';
+
     const btnOpenCreateRoom = document.getElementById('btnOpenCreateRoom');
     const customRoomCodeInput = document.getElementById('customRoomCodeInput');
     const customRoomNameInput = document.getElementById('customRoomNameInput');
@@ -455,22 +478,66 @@ document.addEventListener('DOMContentLoaded', () => {
         return res;
     }
 
-    btnOpenCreateRoom.addEventListener('click', () => {
-        customRoomCodeInput.value = generateRandomCode();
-        customRoomNameInput.value = `${playerName} xonasi`;
+    function openCreateRoomModalHandler() {
+        if (customRoomCodeInput) customRoomCodeInput.value = generateRandomCode();
+        if (customRoomNameInput) customRoomNameInput.value = `${playerName} xonasi`;
         openModal(createRoomModal);
-    });
+    }
 
-    btnGenCode.addEventListener('click', () => {
-        customRoomCodeInput.value = generateRandomCode();
-    });
+    if (btnOpenCreateRoom) {
+        btnOpenCreateRoom.addEventListener('click', openCreateRoomModalHandler);
+        btnOpenCreateRoom.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            openCreateRoomModalHandler();
+        });
+    }
 
-    btnConfirmCreateRoom.addEventListener('click', () => {
-        const socket = getWebSocket();
-        const code = customRoomCodeInput.value.trim().toUpperCase();
-        const name = customRoomNameInput.value.trim() || `${playerName} xonasi`;
+    if (btnGenCode) {
+        btnGenCode.addEventListener('click', () => {
+            if (customRoomCodeInput) customRoomCodeInput.value = generateRandomCode();
+        });
+    }
 
-        const sendPayload = () => {
+    function createLocalRoom(code, name) {
+        isHost = true;
+        localPlayerTeam = 'blue';
+        const maxP = getMaxPlayersForMode(selectedMode);
+        currentRoomInfo = {
+            roomId: code,
+            name: name,
+            mode: selectedMode,
+            map: selectedMap,
+            maxPlayers: maxP,
+            isCustom: true,
+            isLocal: true
+        };
+        localRoomPlayers = [
+            {
+                id: game.playerId || 'local_player',
+                name: playerName,
+                color: playerColor,
+                characterType: characterType,
+                team: localPlayerTeam,
+                isReady: true,
+                isHost: true
+            }
+        ];
+        closeModal(createRoomModal);
+        showWaitingLobby(currentRoomInfo, localRoomPlayers);
+    }
+
+    function handleConfirmCreateRoom() {
+        const code = ((customRoomCodeInput ? customRoomCodeInput.value.trim() : '') || generateRandomCode()).toUpperCase();
+        const name = (customRoomNameInput ? customRoomNameInput.value.trim() : '') || `${playerName} xonasi`;
+
+        let socket = null;
+        try {
+            socket = getWebSocket();
+        } catch (e) {
+            console.warn("[LOBBY] WebSocket ulanishi yo'q:", e);
+        }
+
+        if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({
                 type: 'create_room',
                 roomCode: code,
@@ -482,14 +549,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 characterType: characterType
             }));
             closeModal(createRoomModal);
-        };
-
-        if (socket.readyState === WebSocket.OPEN) {
-            sendPayload();
-        } else {
-            socket.onopen = sendPayload;
+            return;
         }
-    });
+
+        if (socket && socket.readyState === WebSocket.CONNECTING) {
+            let processed = false;
+            const fallbackTimer = setTimeout(() => {
+                if (!processed) {
+                    processed = true;
+                    createLocalRoom(code, name);
+                }
+            }, 800);
+
+            socket.addEventListener('open', () => {
+                if (!processed) {
+                    processed = true;
+                    clearTimeout(fallbackTimer);
+                    socket.send(JSON.stringify({
+                        type: 'create_room',
+                        roomCode: code,
+                        roomName: name,
+                        mode: selectedMode,
+                        map: selectedMap,
+                        playerName: playerName,
+                        color: playerColor,
+                        characterType: characterType
+                    }));
+                    closeModal(createRoomModal);
+                }
+            }, { once: true });
+
+            socket.addEventListener('error', () => {
+                if (!processed) {
+                    processed = true;
+                    clearTimeout(fallbackTimer);
+                    createLocalRoom(code, name);
+                }
+            }, { once: true });
+            return;
+        }
+
+        // Agar server bo'lmasa (masalan GitHub Pages static rejimida)
+        createLocalRoom(code, name);
+    }
+
+    if (btnConfirmCreateRoom) {
+        btnConfirmCreateRoom.addEventListener('click', handleConfirmCreateRoom);
+        btnConfirmCreateRoom.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handleConfirmCreateRoom();
+        });
+    }
 
     // -------------------------------------------------------------
     // 7. XONAGA KIRISH (JOIN ROOM)
@@ -498,19 +608,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinCodeInput = document.getElementById('joinCodeInput');
     const btnConfirmJoinRoom = document.getElementById('btnConfirmJoinRoom');
 
-    btnOpenJoinRoom.addEventListener('click', () => {
-        joinCodeInput.value = '';
-        openModal(joinRoomModal);
-    });
+    if (btnOpenJoinRoom) {
+        btnOpenJoinRoom.addEventListener('click', () => {
+            if (joinCodeInput) joinCodeInput.value = '';
+            openModal(joinRoomModal);
+        });
+    }
 
-    btnConfirmJoinRoom.addEventListener('click', () => {
-        const code = joinCodeInput.value.trim().toUpperCase();
+    function handleConfirmJoinRoom() {
+        const code = (joinCodeInput ? joinCodeInput.value.trim() : '').toUpperCase();
         if (!code) {
             alert("Iltimos, xona kodini kiriting!");
             return;
         }
 
-        const socket = getWebSocket();
+        let socket = null;
+        try {
+            socket = getWebSocket();
+        } catch (e) {
+            console.warn("[LOBBY] WS xatosi:", e);
+        }
+
         const sendPayload = () => {
             socket.send(JSON.stringify({
                 type: 'join_room',
@@ -522,12 +640,40 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal(joinRoomModal);
         };
 
-        if (socket.readyState === WebSocket.OPEN) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
             sendPayload();
-        } else {
-            socket.onopen = sendPayload;
+            return;
         }
-    });
+
+        if (socket && socket.readyState === WebSocket.CONNECTING) {
+            let processed = false;
+            const fallbackTimer = setTimeout(() => {
+                if (!processed) {
+                    processed = true;
+                    alert("Online serverga ulanib bo'lmadi (Offline rejim). Yangi xona yaratishingiz yoki botlar bilan o'ynashingiz mumkin!");
+                }
+            }, 1000);
+
+            socket.addEventListener('open', () => {
+                if (!processed) {
+                    processed = true;
+                    clearTimeout(fallbackTimer);
+                    sendPayload();
+                }
+            }, { once: true });
+            return;
+        }
+
+        alert("Online server mavjud emas (Offline rejim). Yangi xona yaratishingiz yoki botlar bilan o'ynashingiz mumkin!");
+    }
+
+    if (btnConfirmJoinRoom) {
+        btnConfirmJoinRoom.addEventListener('click', handleConfirmJoinRoom);
+        btnConfirmJoinRoom.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handleConfirmJoinRoom();
+        });
+    }
 
     // -------------------------------------------------------------
     // 8. KUTISH LOBBISI (WAITING LOBBY)
@@ -542,14 +688,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnHostStartMatch = document.getElementById('btnHostStartMatch');
 
     function showWaitingLobby(room, players) {
-        waitingRoomTitle.textContent = `🏆 ${room.name} (${game.getModeLabel(room.mode)})`;
-        waitingRoomCode.textContent = room.roomId;
+        if (waitingRoomTitle) {
+            const modeText = game.getModeLabel ? game.getModeLabel(room.mode) : room.mode;
+            const offlineTag = room.isLocal ? ' [Lokal]' : '';
+            waitingRoomTitle.textContent = `🏆 ${room.name} (${modeText})${offlineTag}`;
+        }
+        if (waitingRoomCode) {
+            waitingRoomCode.textContent = room.roomId;
+        }
         updateWaitingRoomSlots(players);
-        btnHostStartMatch.style.display = isHost ? 'block' : 'none';
+        if (btnHostStartMatch) {
+            btnHostStartMatch.style.display = isHost ? 'block' : 'none';
+        }
         openModal(roomWaitingModal);
     }
 
     function updateWaitingRoomSlots(players) {
+        if (!blueTeamSlotsList || !redTeamSlotsList) return;
         blueTeamSlotsList.innerHTML = '';
         redTeamSlotsList.innerHTML = '';
 
@@ -575,33 +730,74 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    btnCopyWaitingCode.addEventListener('click', () => {
-        const code = waitingRoomCode.textContent;
-        navigator.clipboard.writeText(code).then(() => {
-            btnCopyWaitingCode.textContent = "✅ Nusxalandi!";
-            setTimeout(() => {
-                btnCopyWaitingCode.textContent = "📋 Nusxalash";
-            }, 2000);
+    if (btnCopyWaitingCode) {
+        btnCopyWaitingCode.addEventListener('click', () => {
+            const code = waitingRoomCode.textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                btnCopyWaitingCode.textContent = "✅ Nusxalandi!";
+                setTimeout(() => {
+                    btnCopyWaitingCode.textContent = "📋 Nusxalash";
+                }, 2000);
+            }).catch(() => {
+                btnCopyWaitingCode.textContent = code;
+            });
         });
-    });
+    }
 
-    btnSwitchTeam.addEventListener('click', () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'switch_team' }));
-        }
-    });
+    if (btnSwitchTeam) {
+        btnSwitchTeam.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN && currentRoomInfo && !currentRoomInfo.isLocal) {
+                ws.send(JSON.stringify({ type: 'switch_team' }));
+            } else if (currentRoomInfo && currentRoomInfo.isLocal) {
+                localPlayerTeam = (localPlayerTeam === 'blue') ? 'red' : 'blue';
+                if (localRoomPlayers.length > 0) {
+                    localRoomPlayers[0].team = localPlayerTeam;
+                }
+                updateWaitingRoomSlots(localRoomPlayers);
+                if (sound) sound.playClick();
+            }
+        });
+    }
 
-    btnToggleReady.addEventListener('click', () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'toggle_ready' }));
-        }
-    });
+    if (btnToggleReady) {
+        btnToggleReady.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN && currentRoomInfo && !currentRoomInfo.isLocal) {
+                ws.send(JSON.stringify({ type: 'toggle_ready' }));
+            } else if (currentRoomInfo && currentRoomInfo.isLocal) {
+                if (localRoomPlayers.length > 0) {
+                    localRoomPlayers[0].isReady = !localRoomPlayers[0].isReady;
+                }
+                updateWaitingRoomSlots(localRoomPlayers);
+                if (sound) sound.playClick();
+            }
+        });
+    }
 
-    btnHostStartMatch.addEventListener('click', () => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'start_match' }));
-        }
-    });
+    if (btnHostStartMatch) {
+        btnHostStartMatch.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN && currentRoomInfo && !currentRoomInfo.isLocal) {
+                ws.send(JSON.stringify({ type: 'start_match' }));
+            } else {
+                // Lokal yoki offline xonada o'yinni boshlash
+                sound.init();
+                sound.resume();
+                syncAudioButtonsUI();
+                closeModal(roomWaitingModal);
+                mainLobbyScreen.classList.add('hidden');
+                game.startMatch({
+                    name: playerName,
+                    color: playerColor,
+                    characterType: characterType,
+                    mode: currentRoomInfo ? currentRoomInfo.mode : selectedMode,
+                    map: currentRoomInfo ? currentRoomInfo.map : selectedMap,
+                    roomCode: currentRoomInfo ? currentRoomInfo.roomId : 'LOCAL',
+                    team: localPlayerTeam || 'blue',
+                    isMultiplayer: false,
+                    useBots: true
+                });
+            }
+        });
+    }
 
     // -------------------------------------------------------------
     // 9. OCHIQ XONALARNI KO'RISH (BROWSE ROOMS)
@@ -644,7 +840,13 @@ document.addEventListener('DOMContentLoaded', () => {
         roomsListContainer.querySelectorAll('.btn-join-room-row').forEach(btn => {
             btn.addEventListener('click', () => {
                 const rId = btn.getAttribute('data-room-id');
-                const socket = getWebSocket();
+                let socket = null;
+                try {
+                    socket = getWebSocket();
+                } catch (e) {
+                    console.warn(e);
+                }
+
                 const sendJoin = () => {
                     socket.send(JSON.stringify({
                         type: 'join_room',
@@ -655,8 +857,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }));
                     closeModal(browseRoomsModal);
                 };
-                if (socket.readyState === WebSocket.OPEN) sendJoin();
-                else socket.onopen = sendJoin;
+
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    sendJoin();
+                } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+                    socket.addEventListener('open', sendJoin, { once: true });
+                } else {
+                    alert("Online serverga ulanib bo'lmadi.");
+                }
             });
         });
     }

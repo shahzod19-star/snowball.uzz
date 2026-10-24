@@ -675,7 +675,7 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 100;
+    z-index: 20000;
     transition: opacity 0.25s ease;
 }
 
