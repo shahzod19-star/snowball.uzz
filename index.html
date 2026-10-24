@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Snow Clash 3D - Battle Royale & Minecraft Arena ❄️⚔️</title>
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
 </head>
@@ -738,11 +739,27 @@
         </div>
     </div>
 
-    <script src="js/three.min.js"></script>
-    <script src="js/three_engine.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/shop_quests.js"></script>
-    <script src="js/lobby.js"></script>
+    <script src="three.min.js"></script>
+    <script src="three_engine.js"></script>
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+    <script src="shop_quests.js"></script>
+    <script src="lobby.js"></script>
+    <script>
+        // Agar birorta skript rootdan yuklanmasa, avtomatik js/ papkasidan yuklash
+        (function() {
+            var list = ['three.min.js', 'three_engine.js', 'audio.js', 'game.js', 'shop_quests.js', 'lobby.js'];
+            list.forEach(function(s) {
+                var elem = document.querySelector('script[src="' + s + '"]');
+                if (elem) {
+                    elem.onerror = function() {
+                        var alt = document.createElement('script');
+                        alt.src = 'js/' + s;
+                        document.body.appendChild(alt);
+                    };
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
