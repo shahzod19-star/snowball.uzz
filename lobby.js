@@ -89,10 +89,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     requestAnimationFrame(renderHeroPreview);
 
-    // Minecraft Personaj tanlovi (Steve, Barbie, Soldat, Zombie, Skelet, Enderman, Creeper)
-    const mcCharCards = document.querySelectorAll('.mc-char-card');
+    // Minecraft Personaj tanlovi (Faqat xarid qilingan / mavjud personajlar ko'rinadi)
+    const mcCharSelector = document.getElementById('mcCharacterSelector');
+    const allKnownChars = {
+        'steve': { name: 'Steve', icon: '⛏️', title: 'Steve - Klassik qahramon' },
+        'barbie': { name: 'Barbie', icon: '🎀', title: 'Barbie - Qizlar uchun go\'zal' },
+        'soldier': { name: 'Soldat', icon: '🎖️', title: 'Harbiy Soldat - Maxsus harbiy jangchi' },
+        'zombie': { name: 'Zombi', icon: '🧟', title: 'Zombie - Yashil mutant' },
+        'skeleton': { name: 'Skelet', icon: '💀', title: 'Skeleton - Mergan skelet' },
+        'enderman': { name: 'Enderman', icon: '🌌', title: 'Enderman - Sirli mutant' },
+        'creeper': { name: 'Creeper', icon: '💥', title: 'Creeper - Yashil maxluq' },
+        'diamond_armor': { name: 'Olmos Steve', icon: '💎', title: 'Olmos Zirhli Steve' },
+        'netherite': { name: 'Netherite', icon: '🔥', title: 'Netherite Jangchisi' },
+        'cyber_steve': { name: 'Kiber Steve', icon: '🤖', title: 'Kiber Voxel Steve' }
+    };
+
     function updateMcCharUI() {
-        mcCharCards.forEach(c => {
+        if (!mcCharSelector) return;
+        const cards = mcCharSelector.querySelectorAll('.mc-char-card');
+        cards.forEach(c => {
             if (c.getAttribute('data-char') === characterType) {
                 c.classList.add('active');
             } else {
@@ -111,19 +126,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    mcCharCards.forEach(card => {
-        const handleSelect = (e) => {
-            if (e) e.preventDefault();
-            const chosen = card.getAttribute('data-char') || 'steve';
-            if (characterType !== chosen) {
-                characterType = chosen;
-                updateMcCharUI();
-                if (window.soundSystem) window.soundSystem.playClick();
-            }
-        };
-        card.addEventListener('click', handleSelect);
-        card.addEventListener('pointerdown', handleSelect);
-    });
+    window.renderLobbyCharacterCards = function() {
+        if (!mcCharSelector) return;
+        mcCharSelector.innerHTML = '';
+        const sq = window.shopAndQuests;
+        const owned = (sq && sq.ownedSkins) ? sq.ownedSkins : ['steve', 'barbie'];
+
+        // Agar tanlangan personaj sotib olinmagan bo'lsa, birinchi mavjudiga o'tadi
+        if (!owned.includes(characterType)) {
+            characterType = owned[0] || 'steve';
+        }
+
+        owned.forEach(charId => {
+            const meta = allKnownChars[charId] || { name: charId, icon: '⛏️', title: charId };
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `mc-char-card ${charId === characterType ? 'active' : ''}`;
+            btn.setAttribute('data-char', charId);
+            btn.title = meta.title;
+            btn.textContent = `${meta.icon} ${meta.name}`;
+
+            const handleSelect = (e) => {
+                if (e) e.preventDefault();
+                if (characterType !== charId) {
+                    characterType = charId;
+                    updateMcCharUI();
+                    if (window.soundSystem) window.soundSystem.playClick();
+                }
+            };
+            btn.addEventListener('click', handleSelect);
+            btn.addEventListener('pointerdown', handleSelect);
+            mcCharSelector.appendChild(btn);
+        });
+
+        updateMcCharUI();
+    };
 
     if (settingCharSelect) {
         settingCharSelect.addEventListener('change', (e) => {
@@ -132,7 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.soundSystem) window.soundSystem.playClick();
         });
     }
-    updateMcCharUI();
+
+    window.renderLobbyCharacterCards();
 
     // Jang Turi: Qor Jangi (Snow) vs Qurolli Jang (Gun)
     const btnBattleSnow = document.getElementById('btnBattleSnow');
@@ -1068,9 +1106,236 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // -------------------------------------------------------------
+    // KO'P TILLI TIZIM (O'ZBEK, RUS, INGLIZ TILLARI)
+    // -------------------------------------------------------------
+    let currentLang = localStorage.getItem('snow_lang') || 'uz';
+    const translations = {
+        uz: {
+            brandTitle: "❄️ SNOW CLASH 3D ⚔️",
+            brandSubtitle: "Minecraft 3D Arena & Battle Royale",
+            battleSnow: "❄️ QOR JANGI",
+            battleGun: "🔫 QUROLLI JANG",
+            quickPlay: "🚀 TEZKOR JANG",
+            createRoom: "➕ Xona Yaratish",
+            joinRoom: "🔑 Xona Kodi bilan Kirish",
+            browseRooms: "📋 Ochiq Xonalar",
+            playBots: "🤖 Botlar bilan Mashq (Offline)",
+            upgrades: "⚡ Kuchaytirish",
+            shop: "🛒 Do'kon",
+            quests: "📜 Vazifalar",
+            leaderboard: "🏆 Reyting",
+            dayText: "☀️ KUN",
+            nightText: "🌙 TUN",
+            scoreBlue: "Ko'k:",
+            scoreRed: "Qizil:",
+            radar: "🗺️ RADAR",
+            alive: "Tirik"
+        },
+        ru: {
+            brandTitle: "❄️ SNOW CLASH 3D ⚔️",
+            brandSubtitle: "Minecraft 3D Боевая Арена и Королевская Битва",
+            battleSnow: "❄️ СНЕЖНЫЙ БОЙ",
+            battleGun: "🔫 ОРУЖЕЙНЫЙ БОЙ",
+            quickPlay: "🚀 БЫСТРЫЙ БОЙ",
+            createRoom: "➕ Создать Комнату",
+            joinRoom: "🔑 Войти по Коду",
+            browseRooms: "📋 Список Комнат",
+            playBots: "🤖 Тренировка с Ботами",
+            upgrades: "⚡ Прокачка",
+            shop: "🛒 Магазин",
+            quests: "📜 Задания",
+            leaderboard: "🏆 Рейтинг",
+            dayText: "☀️ ДЕНЬ",
+            nightText: "🌙 НОЧЬ",
+            scoreBlue: "Синие:",
+            scoreRed: "Красные:",
+            radar: "🗺️ РАДАР",
+            alive: "Живых"
+        },
+        en: {
+            brandTitle: "❄️ SNOW CLASH 3D ⚔️",
+            brandSubtitle: "Minecraft 3D Arena & Battle Royale",
+            battleSnow: "❄️ SNOW FIGHT",
+            battleGun: "🔫 GUN BATTLE",
+            quickPlay: "🚀 QUICK PLAY",
+            createRoom: "➕ Create Room",
+            joinRoom: "🔑 Join with Code",
+            browseRooms: "📋 Browse Rooms",
+            playBots: "🤖 Practice with Bots",
+            upgrades: "⚡ Upgrades",
+            shop: "🛒 Shop",
+            quests: "📜 Quests",
+            leaderboard: "🏆 Leaderboard",
+            dayText: "☀️ DAY",
+            nightText: "🌙 NIGHT",
+            scoreBlue: "Blue:",
+            scoreRed: "Red:",
+            radar: "🗺️ RADAR",
+            alive: "Alive"
+        }
+    };
+
+    function updateDayNightButtonUI() {
+        const btnToggleDayNight = document.getElementById('btnToggleDayNight');
+        if (!btnToggleDayNight) return;
+        const isNight = (game && game.timeOfDay === 'night');
+        const t = translations[currentLang] || translations.uz;
+        if (isNight) {
+            btnToggleDayNight.classList.add('night');
+            btnToggleDayNight.textContent = t.nightText;
+        } else {
+            btnToggleDayNight.classList.remove('night');
+            btnToggleDayNight.textContent = t.dayText;
+        }
+    }
+
+    function applyLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('snow_lang', lang);
+        const t = translations[lang] || translations.uz;
+
+        const langBtns = document.querySelectorAll('.lang-btn');
+        langBtns.forEach(b => {
+            if (b.getAttribute('data-lang') === lang) b.classList.add('active');
+            else b.classList.remove('active');
+        });
+
+        const brandTitle = document.getElementById('brandTitle');
+        if (brandTitle) brandTitle.textContent = t.brandTitle;
+
+        const brandSubtitle = document.getElementById('brandSubtitle');
+        if (brandSubtitle) brandSubtitle.textContent = t.brandSubtitle;
+
+        if (btnBattleSnow) btnBattleSnow.textContent = t.battleSnow;
+        if (btnBattleGun) btnBattleGun.textContent = t.battleGun;
+
+        const btnQP = document.getElementById('btnQuickPlay');
+        if (btnQP) btnQP.innerHTML = `<span>🚀</span> ${t.quickPlay.replace('🚀 ', '')}`;
+
+        const btnCR = document.getElementById('btnOpenCreateRoom');
+        if (btnCR) btnCR.innerHTML = `<span>➕</span> ${t.createRoom.replace('➕ ', '')}`;
+
+        const btnJR = document.getElementById('btnOpenJoinRoom');
+        if (btnJR) btnJR.innerHTML = `<span>🔑</span> ${t.joinRoom.replace('🔑 ', '')}`;
+
+        const btnBR = document.getElementById('btnOpenBrowseRooms');
+        if (btnBR) btnBR.innerHTML = `<span>📋</span> ${t.browseRooms.replace('📋 ', '')}`;
+
+        const btnPB = document.getElementById('btnPlayBots');
+        if (btnPB) btnPB.innerHTML = `<span>🤖</span> ${t.playBots.replace('🤖 ', '')}`;
+
+        const btnOpenUpg = document.getElementById('btnOpenUpgrades');
+        const upgBadge = document.getElementById('upgradePointsBadge');
+        const upgBadgeVal = upgBadge ? upgBadge.textContent : '1';
+        if (btnOpenUpg) {
+            btnOpenUpg.innerHTML = `⚡ ${t.upgrades.replace('⚡ ', '')} <span class="upgrade-pts-badge" id="upgradePointsBadge">${upgBadgeVal}</span>`;
+        }
+
+        const btnSh = document.getElementById('btnOpenShop');
+        if (btnSh) btnSh.textContent = t.shop;
+
+        const btnQ = document.getElementById('btnOpenQuests');
+        if (btnQ) btnQ.textContent = t.quests;
+
+        const btnLB = document.getElementById('btnOpenLeaderboard');
+        if (btnLB) btnLB.textContent = t.leaderboard;
+
+        const minimapLabel = document.getElementById('minimapLabel');
+        if (minimapLabel) minimapLabel.textContent = t.radar;
+
+        const scoreBlueLabel = document.getElementById('scoreBlueLabel');
+        if (scoreBlueLabel) scoreBlueLabel.textContent = t.scoreBlue;
+
+        const scoreRedLabel = document.getElementById('scoreRedLabel');
+        if (scoreRedLabel) scoreRedLabel.textContent = t.scoreRed;
+
+        updateDayNightButtonUI();
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chosenLang = btn.getAttribute('data-lang');
+            if (chosenLang) {
+                applyLanguage(chosenLang);
+                if (sound) sound.playClick();
+            }
+        });
+    });
+
+    // Kun / Tun rejimini almashtirish
+    const btnToggleDayNight = document.getElementById('btnToggleDayNight');
+    if (btnToggleDayNight) {
+        btnToggleDayNight.addEventListener('click', () => {
+            if (game && typeof game.toggleTimeOfDay === 'function') {
+                game.toggleTimeOfDay();
+            } else if (game) {
+                game.timeOfDay = (game.timeOfDay === 'day' ? 'night' : 'day');
+            }
+            updateDayNightButtonUI();
+            if (sound) sound.playClick();
+        });
+    }
+
+    // -------------------------------------------------------------
+    // ADMIN BOSHQARUV PANELI
+    // -------------------------------------------------------------
+    const adminModal = document.getElementById('adminModal');
+    const btnOpenAdmin = document.getElementById('btnOpenAdmin');
+    const btnAdminCoins = document.getElementById('btnAdminCoins');
+    const btnAdminUnlockAll = document.getElementById('btnAdminUnlockAll');
+    const btnAdminMaxLevel = document.getElementById('btnAdminMaxLevel');
+    const btnAdminGodMode = document.getElementById('btnAdminGodMode');
+
+    if (btnOpenAdmin && adminModal) {
+        btnOpenAdmin.addEventListener('click', () => {
+            adminModal.classList.remove('hidden');
+            if (sound) sound.playClick();
+        });
+    }
+
+    if (btnAdminCoins) {
+        btnAdminCoins.addEventListener('click', () => {
+            if (window.shopAndQuests) {
+                window.shopAndQuests.adminAddCoins(50000);
+            }
+            if (sound) sound.playVictory();
+        });
+    }
+
+    if (btnAdminUnlockAll) {
+        btnAdminUnlockAll.addEventListener('click', () => {
+            if (window.shopAndQuests) {
+                window.shopAndQuests.adminUnlockAllSkins();
+            }
+            if (sound) sound.playVictory();
+        });
+    }
+
+    if (btnAdminMaxLevel) {
+        btnAdminMaxLevel.addEventListener('click', () => {
+            if (window.shopAndQuests) {
+                window.shopAndQuests.adminMaxUpgrades();
+            }
+            if (sound) sound.playLevelUp();
+        });
+    }
+
+    if (btnAdminGodMode) {
+        btnAdminGodMode.addEventListener('click', () => {
+            if (window.shopAndQuests) {
+                window.shopAndQuests.adminGodMode();
+            }
+            if (sound) sound.playClick();
+        });
+    }
+
+    applyLanguage(currentLang);
+
     // Enter tugmasi o'yinda otish uchun ishlatiladi (game.js boshqaradi)
 
     document.body.addEventListener('click', () => {
         if (sound) sound.init();
     }, { once: true });
 });
+

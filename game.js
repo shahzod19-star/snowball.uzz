@@ -174,6 +174,47 @@ class SnowClashGame {
         this.obstacles.push({ type: 'tnt', x: w - redWallW * 0.7 - 26, y: h * 0.28, width: 26, height: 26 });
         this.obstacles.push({ type: 'tnt', x: w - redWallW * 0.7 - 26, y: h * 0.72, width: 26, height: 26 });
 
+        if (this.gameMode === 'battle_royale') {
+            // 👑 ULKAN 50 KISHILIK BATTLE ROYALE MAYDONI (3000 x 3000 px)
+            this.width = 3000;
+            this.height = 3000;
+            const bw = 3000;
+            const bh = 3000;
+
+            // Markaziy Qal'a va Qo'mondonlik Boshpanasi (Center Military Base)
+            this.obstacles.push({ type: 'wall', x: bw * 0.5 - 120, y: bh * 0.5 - 24, width: 240, height: 48 });
+            this.obstacles.push({ type: 'wall', x: bw * 0.5 - 24, y: bh * 0.5 - 120, width: 48, height: 240 });
+            this.obstacles.push({ type: 'chest', x: bw * 0.5 - 50, y: bh * 0.5 - 50, width: 34, height: 28 });
+            this.obstacles.push({ type: 'chest', x: bw * 0.5 + 20, y: bh * 0.5 + 20, width: 34, height: 28 });
+            this.obstacles.push({ type: 'tnt', x: bw * 0.5 - 80, y: bh * 0.5 + 80, width: 32, height: 32 });
+            this.obstacles.push({ type: 'tnt', x: bw * 0.5 + 80, y: bh * 0.5 - 80, width: 32, height: 32 });
+
+            // 4 ta Burchakdagi Mini-Bazalar va Minoralar (Corner Outposts)
+            const corners = [
+                { x: bw * 0.2, y: bh * 0.2 }, { x: bw * 0.8, y: bh * 0.2 },
+                { x: bw * 0.2, y: bh * 0.8 }, { x: bw * 0.8, y: bh * 0.8 },
+                { x: bw * 0.5, y: bh * 0.2 }, { x: bw * 0.5, y: bh * 0.8 },
+                { x: bw * 0.2, y: bh * 0.5 }, { x: bw * 0.8, y: bh * 0.5 }
+            ];
+
+            corners.forEach((c, idx) => {
+                this.obstacles.push({ type: 'watchtower', x: c.x, y: c.y, radius: 26 });
+                this.obstacles.push({ type: 'wall', x: c.x - 45, y: c.y + 40, width: 90, height: 22 });
+                this.obstacles.push({ type: 'chest', x: c.x + 35, y: c.y - 20, width: 28, height: 24 });
+                this.obstacles.push({ type: 'tnt', x: c.x - 45, y: c.y - 30, width: 28, height: 28 });
+            });
+
+            // Maydon bo'ylab tarqalgan 24 ta blokli daraxt va barrikadalar
+            for (let i = 0; i < 24; i++) {
+                const tx = 250 + (i * 123) % 2500;
+                const ty = 250 + (i * 197) % 2500;
+                this.obstacles.push({ type: 'mc_tree', x: tx, y: ty, radius: 28 });
+            }
+
+            this.spawnGroundCoins(25);
+            return;
+        }
+
         if (this.mapType === 'warzone') {
             // ⚔️ MINECRAFT WARZONE BAZASI - Markaziy barrikadalar va TNT boshpanalar
             // O'yinchilar spawn nuqtalari (w*0.24 va w*0.76) butunlay ochiq maydon!
@@ -276,14 +317,16 @@ class SnowClashGame {
             this.keys[e.key.toLowerCase()] = true;
             this.keys[e.code] = true;
 
-            // Space - Qor yasash (Qor rejimida)
+            // Space - Sakrash (Jump)
             if (e.code === 'Space' && !this.isPaused && !this.localPlayer.isDead) {
                 e.preventDefault();
-                if (this.battleType === 'gun') {
-                    this.reloadGun();
-                } else {
-                    this.startCrafting();
-                }
+                this.jump();
+            }
+
+            // C yoki Ctrl - O'tirish (Crouch)
+            if ((e.code === 'KeyC' || e.key.toLowerCase() === 'c' || e.code === 'ControlLeft' || e.code === 'ControlRight') && !this.isPaused && !this.localPlayer.isDead) {
+                e.preventDefault();
+                this.toggleCrouch();
             }
 
             // R - Qayta o'qlash (Reload) qurol rejimida
@@ -294,6 +337,12 @@ class SnowClashGame {
                 } else {
                     this.startCrafting();
                 }
+            }
+
+            // B - Qor yasash (Craft)
+            if ((e.key.toLowerCase() === 'b' || e.code === 'KeyB') && !this.isPaused && this.isRunning && !this.localPlayer.isDead) {
+                e.preventDefault();
+                this.startCrafting();
             }
 
             // 1, 2, 3 - Qurol almashtirish (Faqat qurolli jangda: Pichoq, Pistolet, Avtomat)
@@ -310,10 +359,16 @@ class SnowClashGame {
                 }
             }
 
-            // V / F / C - Kamera Rejimini almashtirish (1-Litso / 2-Litso)
-            if ((e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'c') && !this.isPaused && this.isRunning) {
+            // V / F - Kamera Rejimini almashtirish (1-Litso / 2-Litso / 3D)
+            if ((e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'f') && !this.isPaused && this.isRunning) {
                 e.preventDefault();
                 this.toggleCameraMode();
+            }
+
+            // T - Kun va Tun rejimini almashtirish (Day/Night)
+            if ((e.key.toLowerCase() === 't' || e.code === 'KeyT') && !this.isPaused && this.isRunning) {
+                e.preventDefault();
+                this.toggleTimeOfDay();
             }
 
             // Enter - Otish (Qurol yoki Qor otish)
@@ -603,16 +658,70 @@ class SnowClashGame {
             setTimeout(() => { this.touchAimActive = false; }, 350);
         };
 
-        this.canvas.addEventListener('touchstart', (e) => {
-            if (!this.isRunning || this.isPaused || this.localPlayer.isDead) return;
-            for (let i = 0; i < e.changedTouches.length; i++) {
-                const t = e.changedTouches[i];
-                if (this.joystick.active && t.identifier === this.joystick.touchId) continue;
-                const target = document.elementFromPoint(t.clientX, t.clientY);
-                if (target && target.closest('.m-action-btn, .joystick-zone, .interactive')) continue;
-                handleCanvasTouch(t.clientX, t.clientY);
-            }
-        }, { passive: false });
+        // 4.6. MOBIL SAKRASH (JUMP) VA O'TIRISH (CROUCH)
+        const btnMobJump = document.getElementById('btnMobileJump');
+        if (btnMobJump) {
+            const doMobJump = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
+                    this.jump();
+                }
+            };
+            btnMobJump.addEventListener('pointerdown', doMobJump);
+            btnMobJump.addEventListener('touchstart', doMobJump, { passive: false });
+            btnMobJump.addEventListener('click', doMobJump);
+        }
+
+        const btnMobCrouch = document.getElementById('btnMobileCrouch');
+        if (btnMobCrouch) {
+            const doMobCrouch = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
+                    this.toggleCrouch();
+                }
+            };
+            btnMobCrouch.addEventListener('pointerdown', doMobCrouch);
+            btnMobCrouch.addEventListener('touchstart', doMobCrouch, { passive: false });
+            btnMobCrouch.addEventListener('click', doMobCrouch);
+        }
+    }
+
+    jump() {
+        const p = this.localPlayer;
+        if (!p || p.isDead || p.isJumping) return;
+        p.isJumping = true;
+        p.jumpVelocity = 8.0;
+        p.jumpZ = 1;
+        if (p.isCrouching) p.isCrouching = false;
+        if (window.soundSystem && typeof window.soundSystem.playNote === 'function') {
+            window.soundSystem.playNote(280, 0.08, 0, 'sine', 0.12);
+        }
+    }
+
+    toggleCrouch() {
+        const p = this.localPlayer;
+        if (!p || p.isDead) return;
+        p.isCrouching = !p.isCrouching;
+        const msg = p.isCrouching ? "🧎 O'tirish rejimi (Sekinroq, nishon aniqroq)" : "🚶 Tik turildi";
+        this.showKillFeed(msg, false);
+        if (window.soundSystem) window.soundSystem.playClick();
+    }
+
+    toggleTimeOfDay() {
+        this.timeOfDay = (this.timeOfDay === 'night') ? 'day' : 'night';
+        localStorage.setItem('snow_time_of_day', this.timeOfDay);
+        if (this.threeEngine) {
+            this.threeEngine.updateSkyAndFog();
+            this.threeEngine.buildEnvironment();
+        }
+        const label = (this.timeOfDay === 'night') ? '🌙 TUN (Tungi jangovar rejim)' : '☀️ KUN (Kunduzgi ochiq maydon)';
+        this.showKillFeed(label, false);
+        const dayNightBtn = document.getElementById('btnToggleDayNight');
+        if (dayNightBtn) {
+            dayNightBtn.textContent = (this.timeOfDay === 'night') ? '🌙 TUN' : '☀️ KUN';
+        }
     }
 
     reloadGun() {
@@ -719,6 +828,11 @@ class SnowClashGame {
             this.localPlayer.reserveAmmo = 0;
             this.localPlayer.isReloading = false;
         }
+        this.timeOfDay = config.timeOfDay || localStorage.getItem('snow_time_of_day') || 'day';
+        this.localPlayer.isJumping = false;
+        this.localPlayer.jumpZ = 0;
+        this.localPlayer.jumpVelocity = 0;
+        this.localPlayer.isCrouching = false;
         this.localPlayer.snowballDamage = playerStats.damage;
         this.localPlayer.maxShield = playerStats.maxShield;
         this.localPlayer.shield = playerStats.shield;
@@ -726,13 +840,26 @@ class SnowClashGame {
         this.localPlayer.isDead = false;
         this.localPlayer.team = config.team || 'blue';
 
-        // Xavfsiz, ochiq maydonda spawn qilish (Bazalardan ancha uzoqda)
-        if (this.localPlayer.team === 'blue') {
-            this.localPlayer.x = this.width * 0.24;
-            this.localPlayer.y = this.height * 0.5;
+        // Xavfsiz maydonda spawn qilish
+        if (this.gameMode === 'battle_royale') {
+            this.localPlayer.x = this.width * 0.5 + (Math.random() - 0.5) * 200;
+            this.localPlayer.y = this.height * 0.5 + (Math.random() - 0.5) * 200;
+            this.safeZone = {
+                cx: this.width * 0.5,
+                cy: this.height * 0.5,
+                radius: this.width * 0.48,
+                targetRadius: 180,
+                shrinkSpeed: 0.16
+            };
         } else {
-            this.localPlayer.x = this.width * 0.76;
-            this.localPlayer.y = this.height * 0.5;
+            this.safeZone = null;
+            if (this.localPlayer.team === 'blue') {
+                this.localPlayer.x = this.width * 0.24;
+                this.localPlayer.y = this.height * 0.5;
+            } else {
+                this.localPlayer.x = this.width * 0.76;
+                this.localPlayer.y = this.height * 0.5;
+            }
         }
 
         // Safe-Spawn Resolver: Agar o'yinchi spawn bo'lganda to'siqqa yaqin bo'lsa, ochiq joyga surish
@@ -892,9 +1019,20 @@ class SnowClashGame {
     }
 
     spawnBots() {
-        const botNames = ['Artur_Santa', 'QorBola_99', 'MuzYurak', 'Bobur_Sniper', 'Snegurochka', 'Shaxzod_Frost', 'QishkiBo\'ri'];
-        const colors = ['#e63946', '#4cc9f0', '#06d6a0', '#ffd166', '#b5179e'];
-        const skins = ['santa', 'ninja', 'king', 'bear', 'cyber'];
+        const botNames = [
+            'Artur_Santa', 'QorBola_99', 'MuzYurak', 'Bobur_Sniper', 'Snegurochka',
+            'Shaxzod_Frost', 'QishkiBo\'ri', 'Minecraft_Pro', 'CyberSteve', 'Temur_War',
+            'Jaloliddin_99', 'Sardor_Ghost', 'Alisher_AK47', 'Dildora_Barbie', 'Madina_Queen',
+            'Nodir_Storm', 'Jasur_Shadow', 'Shoh_Titan', 'Farrux_Blaze', 'Zafar_Hunter',
+            'Ulugbek_Viper', 'Sherzod_Eagle', 'Rustam_Cobra', 'Otabek_Hawk', 'Bekzod_Flash',
+            'Sanjar_Ranger', 'Dilshod_Bolo', 'Ravshan_Delta', 'Anvar_Bravo', 'Elyor_Alpha',
+            'Xurshid_Vortex', 'Jamshid_Apex', 'Islom_Sniper', 'Oybek_Havoc', 'Shavkat_Striker',
+            'Mansur_Bullet', 'Bobojon_Fury', 'Ibrohim_Glitch', 'Kamron_Savage', 'Doniyor_Reaper',
+            'Laziz_Phantom', 'Umid_Ghost', 'Mirjalol_Frost', 'Akmal_Blizzard', 'Asad_Zero',
+            'Said_Venom', 'Nargiza_Rose', 'Nilufar_Spark', 'Sevara_Glow', 'Ziyoda_Star'
+        ];
+        const colors = ['#e63946', '#4cc9f0', '#06d6a0', '#ffd166', '#b5179e', '#f72585', '#7209b7', '#3a0ca3', '#4361ee', '#4cc9f0'];
+        const skins = ['santa', 'ninja', 'king', 'bear', 'cyber', 'barbie', 'soldier'];
 
         const botConf = window.shopAndQuests ? window.shopAndQuests.getBotConfig(this.botDifficulty) : {
             difficulty: 'normal', speed: 3.5, hp: 100, maxHp: 100, damage: 24, throwCooldownMin: 30, throwCooldownMax: 45, spread: 0.14, canDodge: false, dodgeChance: 0, predictLead: 0, shield: 0, ballType: 'classic'
@@ -907,6 +1045,7 @@ class SnowClashGame {
         if (this.gameMode === '1v1') totalBots = 1;
         else if (this.gameMode === '2v2') totalBots = 3;
         else if (this.gameMode === '4v4') totalBots = 7;
+        else if (this.gameMode === 'battle_royale' || this.gameMode === 'ffa') totalBots = 49;
         else totalBots = 4;
 
         for (let i = 0; i < totalBots; i++) {
@@ -925,12 +1064,15 @@ class SnowClashGame {
             } else if (this.gameMode === '4v4') {
                 team = (teamBlueCount < 4) ? 'blue' : 'red';
                 if (team === 'blue') teamBlueCount++; else teamRedCount++;
-            } else if (this.gameMode === 'ffa') {
+            } else if (this.gameMode === 'battle_royale' || this.gameMode === 'ffa') {
                 team = 'ffa_' + i;
             }
 
             let spawnX, spawnY;
-            if (team === 'blue') {
+            if (this.gameMode === 'battle_royale') {
+                spawnX = Math.random() * (this.width - 400) + 200;
+                spawnY = Math.random() * (this.height - 400) + 200;
+            } else if (team === 'blue') {
                 spawnX = this.width * 0.22 + Math.random() * 40;
                 spawnY = this.height * 0.3 + (i * 90);
             } else if (team === 'red') {
@@ -1083,7 +1225,8 @@ class SnowClashGame {
                         this.onPlayerEliminated(hitEnemy, {
                             ownerId: this.localPlayer.id,
                             ownerName: this.localPlayer.name,
-                            ownerTeam: this.localPlayer.team
+                            ownerTeam: this.localPlayer.team,
+                            isKnife: true
                         });
                     }
                 }
@@ -1350,6 +1493,7 @@ class SnowClashGame {
         }
 
         this.render();
+        this.renderMinimap();
         requestAnimationFrame((t) => this.gameLoop(t));
     }
 
@@ -1360,6 +1504,7 @@ class SnowClashGame {
         this.updateSnowballs();
         this.updateParticles();
         this.updateGroundCoins();
+        this.updateSafeZone();
         this.checkWinCondition();
 
         if (this.isMultiplayer && this.ws && this.ws.readyState === WebSocket.OPEN && Math.random() < 0.45) {
@@ -1682,13 +1827,34 @@ class SnowClashGame {
     updateSnowballs() {
         for (let i = this.snowballs.length - 1; i >= 0; i--) {
             const sb = this.snowballs[i];
+            const startX = sb.x;
+            const startY = sb.y;
             sb.x += sb.vx;
             sb.y += sb.vy;
-            sb.travelled += Math.hypot(sb.vx, sb.vy);
+            const stepDist = Math.hypot(sb.vx, sb.vy);
+            sb.travelled += stepDist;
 
-            // To'siqlarga urilish
-            if (this.checkObstacleCollision(sb.x, sb.y, sb.radius)) {
-                this.createSnowSplash(sb.x, sb.y, this.getSnowballColor(sb.ballType), 12);
+            // To'siqdan o'tib ketmaslik uchun sub-step nurli tekshiruv (Anti-Tunneling Raycast)
+            let obstacleHit = false;
+            const subSteps = Math.max(1, Math.ceil(stepDist / 8));
+            for (let s = 1; s <= subSteps; s++) {
+                const checkX = startX + (sb.vx * (s / subSteps));
+                const checkY = startY + (sb.vy * (s / subSteps));
+                if (this.checkObstacleCollision(checkX, checkY, sb.radius)) {
+                    obstacleHit = true;
+                    sb.x = checkX;
+                    sb.y = checkY;
+                    break;
+                }
+            }
+
+            // To'siqlarga urilish - O'q yoki Qor devordan o'tolmaydi!
+            if (obstacleHit) {
+                if (sb.isBullet) {
+                    this.createHitSparks(sb.x, sb.y, '#ffd166', 10);
+                } else {
+                    this.createSnowSplash(sb.x, sb.y, this.getSnowballColor(sb.ballType), 12);
+                }
                 if (window.soundSystem) window.soundSystem.playHit();
                 this.snowballs.splice(i, 1);
                 continue;
@@ -1705,7 +1871,11 @@ class SnowClashGame {
                 if (dist < player.radius + sb.radius) {
                     hitPlayer = true;
                     this.applyDamage(player, sb);
-                    this.createSnowSplash(sb.x, sb.y, this.getSnowballColor(sb.ballType), 18);
+                    if (sb.isBullet) {
+                        this.createHitSparks(sb.x, sb.y, '#ff3366', 14);
+                    } else {
+                        this.createSnowSplash(sb.x, sb.y, this.getSnowballColor(sb.ballType), 18);
+                    }
                     if (window.soundSystem) window.soundSystem.playHit();
                     break;
                 }
@@ -1721,6 +1891,21 @@ class SnowClashGame {
                 this.snowballs.splice(i, 1);
             }
         }
+    }
+
+    // Raycast Line of Sight: Ikki nuqta o'rtasida to'siq bor-yo'qligini aniqlash
+    hasLineOfSight(x1, y1, x2, y2) {
+        const dist = Math.hypot(x2 - x1, y2 - y1);
+        if (dist <= 0) return true;
+        const steps = Math.ceil(dist / 22);
+        for (let s = 1; s < steps; s++) {
+            const checkX = x1 + (x2 - x1) * (s / steps);
+            const checkY = y1 + (y2 - y1) * (s / steps);
+            if (this.checkObstacleCollision(checkX, checkY, 8)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     getSnowballColor(type) {
@@ -1750,10 +1935,13 @@ class SnowClashGame {
         target.hp -= dmg;
         if (target.hp < 0) target.hp = 0;
 
+        this.showDamagePopup(target.x, target.y, dmg, snowball.isBullet ? '#ffd166' : '#ff3366');
+
         if (snowball.ownerId === this.localPlayer.id) {
             this.stats.hits++;
             this.addCoins(3); // Har bir tekkizilgan zarb uchun +3 tanga!
-            document.getElementById('statHits').textContent = this.stats.hits;
+            const statHits = document.getElementById('statHits');
+            if (statHits) statHits.textContent = this.stats.hits;
             if (window.shopAndQuests) window.shopAndQuests.onSnowballHit();
         }
 
@@ -1769,18 +1957,26 @@ class SnowClashGame {
 
     onPlayerEliminated(victim, killerSnowball) {
         this.createSnowSplash(victim.x, victim.y, '#ffffff', 30);
-        this.showKillFeed(`⛄ ${victim.name} muzlab qoldi! (${killerSnowball.ownerName})`, true);
+        if (killerSnowball.isKnife) {
+            this.showKillFeed(`🔪 ${victim.name} pichoq zarbasidan halok bo'ldi! (${killerSnowball.ownerName})`, true);
+        } else if (killerSnowball.isBullet) {
+            this.showKillFeed(`💥 ${victim.name} otib yiqitildi! (${killerSnowball.ownerName})`, true);
+        } else {
+            this.showKillFeed(`⛄ ${victim.name} muzlab qoldi! (${killerSnowball.ownerName})`, true);
+        }
 
         if (killerSnowball.ownerId === this.localPlayer.id) {
             this.stats.kills++;
             this.addCoins(15); // Raqibni yiqitganda +15 tanga mukofot!
-            document.getElementById('statKills').textContent = this.stats.kills;
+            const statKills = document.getElementById('statKills');
+            if (statKills) statKills.textContent = this.stats.kills;
             if (window.shopAndQuests) window.shopAndQuests.onEnemyEliminated();
         }
 
         if (killerSnowball.ownerTeam === 'blue') this.blueScore++;
         else if (killerSnowball.ownerTeam === 'red') this.redScore++;
         this.updateScoreUI();
+        this.updateAliveCountUI();
 
         this.checkWinCondition();
     }
@@ -1961,6 +2157,10 @@ class SnowClashGame {
             if (window.soundSystem) window.soundSystem.playDefeat();
         }
 
+        if (window.shopAndQuests && typeof window.shopAndQuests.onMatchPlayed === 'function') {
+            window.shopAndQuests.onMatchPlayed();
+        }
+
         // Tanga va Kubok natijasini ko'rsatish
         const coinsEarnedElem = document.getElementById('matchCoinsEarned');
         if (coinsEarnedElem) {
@@ -2005,6 +2205,37 @@ class SnowClashGame {
                 decay: Math.random() * 0.04 + 0.02
             });
         }
+    }
+
+    createHitSparks(x, y, color = '#ff3366', count = 14) {
+        for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 5 + 2;
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: Math.random() * 3 + 1,
+                color: color,
+                alpha: 1,
+                decay: Math.random() * 0.05 + 0.03
+            });
+        }
+    }
+
+    showDamagePopup(x, y, text, color = '#ff0055') {
+        this.particles.push({
+            x: x + (Math.random() - 0.5) * 16,
+            y: y - 12,
+            vx: (Math.random() - 0.5) * 1.0,
+            vy: -2.0,
+            text: `-${text}`,
+            isText: true,
+            color: color,
+            alpha: 1,
+            decay: 0.03
+        });
     }
 
     updateParticles() {
@@ -2170,6 +2401,115 @@ class SnowClashGame {
         const s = this.matchTimeLeft % 60;
         document.getElementById('matchTimer').textContent =
             `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    updateAliveCountUI() {
+        let alive = 0;
+        let total = this.players.size;
+        for (let [id, p] of this.players) {
+            if (!p.isDead) alive++;
+        }
+        const roomTag = document.getElementById('hudRoomTag');
+        if (this.gameMode === 'battle_royale' || this.gameMode === 'ffa') {
+            if (roomTag) roomTag.innerHTML = `👑 BATTLE ROYALE &bull; 👥 <span style="color:#22c55e; font-weight:900;">${alive}</span>/${total} Tirik`;
+        }
+    }
+
+    updateSafeZone() {
+        if (!this.safeZone) return;
+        if (this.safeZone.radius > this.safeZone.targetRadius) {
+            this.safeZone.radius -= this.safeZone.shrinkSpeed;
+        }
+
+        // Bo'ron zonasidan tashqaridagi o'yinchilarga zarar (Storm Damage)
+        for (let [id, p] of this.players) {
+            if (p.isDead) continue;
+            const dist = Math.hypot(p.x - this.safeZone.cx, p.y - this.safeZone.cy);
+            if (dist > this.safeZone.radius) {
+                p.hp = Math.max(0, p.hp - 0.12);
+                if (id === this.localPlayer.id) {
+                    this.updateHpUI();
+                    if (Math.random() < 0.04) {
+                        this.showKillFeed("⚠️ DIQQAT! Siz Muz Bo'roni zonasidasiz! Xavfsiz aylanaga shoshiling!", false);
+                    }
+                }
+                if (p.hp <= 0 && !p.isDead) {
+                    p.isDead = true;
+                    this.onPlayerEliminated(p, { ownerId: 'storm', ownerName: "Muz Bo'roni", ownerTeam: 'storm' });
+                }
+            }
+        }
+    }
+
+    renderMinimap() {
+        const miniCanvas = document.getElementById('minimapCanvas');
+        if (!miniCanvas || !this.isRunning) return;
+        const ctx = miniCanvas.getContext('2d');
+        const mw = miniCanvas.width;
+        const mh = miniCanvas.height;
+        ctx.clearRect(0, 0, mw, mh);
+
+        const scaleX = mw / Math.max(1, this.width);
+        const scaleY = mh / Math.max(1, this.height);
+
+        // Radar Foni
+        ctx.fillStyle = (this.timeOfDay === 'night') ? 'rgba(7, 11, 25, 0.90)' : 'rgba(15, 23, 42, 0.90)';
+        ctx.fillRect(0, 0, mw, mh);
+
+        // Koordinata to'rlari (Tactical Grid)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.10)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(mw / 2, 0); ctx.lineTo(mw / 2, mh);
+        ctx.moveTo(0, mh / 2); ctx.lineTo(mw, mh / 2);
+        ctx.stroke();
+
+        // Xavfsiz Zona (Safe Zone Circle)
+        if (this.safeZone) {
+            ctx.strokeStyle = '#00f5d4';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(this.safeZone.cx * scaleX, this.safeZone.cy * scaleY, Math.max(4, this.safeZone.radius * scaleX), 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // To'siqlar va Binolar (Obstacles)
+        ctx.fillStyle = '#64748b';
+        for (let obs of this.obstacles) {
+            if (obs.radius) {
+                ctx.beginPath();
+                ctx.arc(obs.x * scaleX, obs.y * scaleY, Math.max(2, obs.radius * scaleX), 0, Math.PI * 2);
+                ctx.fill();
+            } else if (obs.width && obs.height) {
+                ctx.fillRect(obs.x * scaleX, obs.y * scaleY, Math.max(3, obs.width * scaleX), Math.max(3, obs.height * scaleY));
+            }
+        }
+
+        // Dushmanlar va Botlar (Enemies: Red, Allies: Blue)
+        for (let [id, p] of this.players) {
+            if (p.isDead || id === this.localPlayer.id) continue;
+            const isAllied = (this.gameMode === '2v2' || this.gameMode === '4v4') && (p.team === this.localPlayer.team);
+            ctx.fillStyle = isAllied ? '#38bdf8' : '#ef4444';
+            ctx.beginPath();
+            ctx.arc(p.x * scaleX, p.y * scaleY, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Mahalliy o'yinchi ko'rsatkichi (Yashil kompas strelkasi)
+        const px = this.localPlayer.x * scaleX;
+        const py = this.localPlayer.y * scaleY;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(this.localPlayer.angle);
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.moveTo(5, 0);
+        ctx.lineTo(-3, -3);
+        ctx.lineTo(-1, 0);
+        ctx.lineTo(-3, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
     }
 
     // =======================================================
@@ -3982,11 +4322,20 @@ class SnowClashGame {
     renderParticles(ctx) {
         for (let p of this.particles) {
             ctx.save();
-            ctx.globalAlpha = p.alpha;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.globalAlpha = Math.max(0, p.alpha);
+            if (p.isText) {
+                ctx.font = 'bold 16px "Minecraftia", monospace, sans-serif';
+                ctx.fillStyle = p.color || '#ff0055';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(p.text, p.x, p.y);
+                ctx.fillText(p.text, p.x, p.y);
+            } else {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
             ctx.restore();
         }
     }

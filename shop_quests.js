@@ -17,22 +17,21 @@ class ShopAndQuestsManager {
             this.upgrades = defaultUpgrades;
         }
 
-        // Sotib olingan buyumlar
-        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["steve", "barbie", "soldier", "santa"]');
+        // Sotib olingan buyumlar (Standart holda faqat Steve va Barbie bepul ochiq)
+        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["steve", "barbie"]');
         if (!this.ownedSkins.includes('steve')) this.ownedSkins.push('steve');
         if (!this.ownedSkins.includes('barbie')) this.ownedSkins.push('barbie');
-        if (!this.ownedSkins.includes('soldier')) this.ownedSkins.push('soldier');
         this.ownedBalls = JSON.parse(localStorage.getItem('snow_owned_balls') || '["classic", "pixel_ak47"]');
         if (!this.ownedBalls.includes('pixel_ak47')) this.ownedBalls.push('pixel_ak47');
 
         this.equippedSkin = localStorage.getItem('snow_equipped_skin') || 'steve';
         this.equippedBall = localStorage.getItem('snow_equipped_ball') || 'classic';
 
-        // Minecraft va Qahramonlar Skinlar
+        // Minecraft va Qahramonlar Skinlar (Boshqa barcha qahramonlar do'kondan sotib olinadi)
         this.skinsCatalog = [
             { id: 'steve', name: '⛏️ Steve (Klassik)', price: 0, desc: 'Minecraft afsonaviy bosh qahramoni' },
             { id: 'barbie', name: '🎀 Barbie (Qizlar uchun)', price: 0, desc: 'Pushti libosli, sariq sochli go\'zal va chaqqon qahramon' },
-            { id: 'soldier', name: '🎖️ Harbiy Soldat', price: 0, desc: 'Taktik kamuflaj va kaskali maxsus kuchlar jangchisi' },
+            { id: 'soldier', name: '🎖️ Harbiy Soldat', price: 180, desc: 'Taktik kamuflaj va kaskali maxsus kuchlar jangchisi' },
             { id: 'zombie', name: '🧟 Zombie (Yashil)', price: 120, desc: 'Yashil xatarli mutant jangchi' },
             { id: 'skeleton', name: '💀 Skelet Mergan', price: 180, desc: 'Oq suyakli chaqqon nishonchi' },
             { id: 'enderman', name: '🌌 Enderman (Ender)', price: 260, desc: 'Binafsha ko\'zli sirli qora jonzot' },
@@ -106,13 +105,29 @@ class ShopAndQuestsManager {
             }
         };
 
-        // Vazifalar (Quests)
-        this.quests = JSON.parse(localStorage.getItem('snow_quests_data') || JSON.stringify([
-            { id: 'kills_5', title: '🎯 5 ta raqibni qor bilan yiqiting', target: 5, current: 0, reward: 60, claimed: false },
-            { id: 'wins_2', title: '🏆 2 ta jangda g\'alaba qozoning', target: 2, current: 0, reward: 100, claimed: false },
-            { id: 'coins_10', title: '🪙 Xaritadan 10 ta oltin tanga tering', target: 10, current: 0, reward: 50, claimed: false },
-            { id: 'hits_20', title: '❄️ Raqiblarga 20 marta qor tekkizing', target: 20, current: 0, reward: 80, claimed: false }
-        ]));
+        // KUNLIK OSON VAZIFALAR (DAILY QUESTS - Har kuni avtomatik yangilanadi)
+        const todayDateStr = new Date().toISOString().slice(0, 10);
+        const lastSavedDate = localStorage.getItem('snow_daily_quest_date');
+        const defaultDailyQuests = [
+            { id: 'daily_match_1', title: '🎮 Kunlik: 1 ta jang o\'ynang', target: 1, current: 0, reward: 35, claimed: false },
+            { id: 'daily_kills_2', title: '🎯 Kunlik: 2 ta raqibni yiqiting', target: 2, current: 0, reward: 50, claimed: false },
+            { id: 'daily_coins_5', title: '🪙 Kunlik: 5 ta oltin tanga tering', target: 5, current: 0, reward: 40, claimed: false },
+            { id: 'daily_hits_5', title: '❄️ Kunlik: Raqibga 5 marta qor/o\'q tekkizing', target: 5, current: 0, reward: 35, claimed: false },
+            { id: 'daily_win_1', title: '🏆 Kunlik: 1 ta jangda g\'alaba qozoning', target: 1, current: 0, reward: 75, claimed: false }
+        ];
+
+        if (lastSavedDate !== todayDateStr) {
+            this.quests = defaultDailyQuests;
+            localStorage.setItem('snow_daily_quest_date', todayDateStr);
+            localStorage.setItem('snow_quests_data', JSON.stringify(this.quests));
+        } else {
+            try {
+                this.quests = JSON.parse(localStorage.getItem('snow_quests_data') || '[]');
+                if (!this.quests || this.quests.length === 0) this.quests = defaultDailyQuests;
+            } catch (e) {
+                this.quests = defaultDailyQuests;
+            }
+        }
 
         this.toastTimeout = null;
         this.initDOM();
@@ -587,7 +602,12 @@ class ShopAndQuestsManager {
             if (window.soundSystem) window.soundSystem.playVictory();
             this.renderShop();
             this.updateCoinDisplays();
-            if (window.snowClashGame) window.snowClashGame.localPlayer.skin = skinId;
+            if (window.snowClashGame && window.snowClashGame.localPlayer) {
+                window.snowClashGame.localPlayer.skin = skinId;
+            }
+            if (typeof window.renderLobbyCharacterCards === 'function') {
+                window.renderLobbyCharacterCards();
+            }
         }
     }
 
@@ -695,41 +715,131 @@ class ShopAndQuestsManager {
     }
 
     onEnemyEliminated() {
-        const q = this.quests.find(item => item.id === 'kills_5');
-        if (q && q.current < q.target) {
-            q.current++;
-            this.renderQuests();
-        }
+        this.quests.forEach(q => {
+            if ((q.id === 'kills_5' || q.id === 'daily_kills_2') && q.current < q.target) {
+                q.current++;
+            }
+        });
+        this.saveData();
+        this.renderQuests();
         this.addTrophies(25);
         this.addXP(60); // Raqib yiqitilganda +60 XP!
     }
 
     onMatchWon() {
-        const q = this.quests.find(item => item.id === 'wins_2');
-        if (q && q.current < q.target) {
-            q.current++;
-            this.renderQuests();
-        }
+        this.quests.forEach(q => {
+            if ((q.id === 'wins_2' || q.id === 'daily_win_1') && q.current < q.target) {
+                q.current++;
+            }
+        });
+        this.saveData();
+        this.renderQuests();
         this.addTrophies(40);
         this.addXP(150); // Jangda g'alaba qozonilganda +150 XP!
     }
 
     onCoinsCollected(amount = 1) {
-        const q = this.quests.find(item => item.id === 'coins_10');
-        if (q && q.current < q.target) {
-            q.current += amount;
-            this.renderQuests();
-        }
+        this.quests.forEach(q => {
+            if ((q.id === 'coins_10' || q.id === 'daily_coins_5') && q.current < q.target) {
+                q.current = Math.min(q.target, q.current + amount);
+            }
+        });
+        this.saveData();
+        this.renderQuests();
         this.addXP(5 * amount); // Har bir tanga uchun +5 XP!
     }
 
     onSnowballHit() {
-        const q = this.quests.find(item => item.id === 'hits_20');
-        if (q && q.current < q.target) {
-            q.current++;
-            this.renderQuests();
-        }
+        this.quests.forEach(q => {
+            if ((q.id === 'hits_20' || q.id === 'daily_hits_5') && q.current < q.target) {
+                q.current++;
+            }
+        });
+        this.saveData();
+        this.renderQuests();
         this.addXP(15); // Har bir tekkizilgan qor uchun +15 XP!
+    }
+
+    onMatchPlayed() {
+        this.quests.forEach(q => {
+            if (q.id === 'daily_match_1' && q.current < q.target) {
+                q.current++;
+            }
+        });
+        this.saveData();
+        this.renderQuests();
+    }
+
+    // ==============================================================
+    // ADMIN BOSHQARUV USULLARI (ADMIN HUQUQLARI VA TANGA QO'SHISH)
+    // ==============================================================
+    adminAddCoins(amount = 50000) {
+        this.coins += amount;
+        this.saveData();
+        this.updateCoinDisplays();
+        if (window.snowClashGame) {
+            window.snowClashGame.coins = this.coins;
+            window.snowClashGame.updateHUDCoins();
+            window.snowClashGame.showKillFeed(`👑 ADMIN: +${amount.toLocaleString()} 🪙 muvaffaqiyatli qo'shildi!`, true);
+        }
+        this.renderShop();
+        this.renderUpgradesModal();
+        return this.coins;
+    }
+
+    adminUnlockAllSkins() {
+        this.skinsCatalog.forEach(s => {
+            if (!this.ownedSkins.includes(s.id)) {
+                this.ownedSkins.push(s.id);
+            }
+        });
+        this.ballsCatalog.forEach(b => {
+            if (!this.ownedBalls.includes(b.id)) {
+                this.ownedBalls.push(b.id);
+            }
+        });
+        this.saveData();
+        this.renderShop();
+        if (typeof window.renderLobbyCharacterCards === 'function') {
+            window.renderLobbyCharacterCards();
+        }
+        if (window.snowClashGame) {
+            window.snowClashGame.showKillFeed(`👑 ADMIN: Barcha personaj va qurollar to'liq ochildi!`, true);
+        }
+    }
+
+    adminMaxUpgrades() {
+        Object.keys(this.upgradesConfig).forEach(k => {
+            this.upgrades[k] = this.upgradesConfig[k].maxLevel;
+        });
+        this.level = 50;
+        this.upgradePoints = 99;
+        this.saveData();
+        this.updateLevelDisplays();
+        this.renderUpgradesModal();
+        if (window.snowClashGame) {
+            window.snowClashGame.initStatsFromUpgrades();
+            window.snowClashGame.showKillFeed(`👑 ADMIN: Qahramon 50-Darajaga va maksimal quvvatga yetkazildi!`, true);
+        }
+    }
+
+    adminGodMode() {
+        if (window.snowClashGame && window.snowClashGame.localPlayer) {
+            const lp = window.snowClashGame.localPlayer;
+            lp.isGodMode = !lp.isGodMode;
+            if (lp.isGodMode) {
+                lp.hp = 999999;
+                lp.maxHp = 999999;
+                lp.shield = 999999;
+                lp.maxShield = 999999;
+            } else {
+                lp.hp = 100;
+                lp.maxHp = 100;
+                lp.shield = 0;
+            }
+            window.snowClashGame.updateHUD();
+            window.snowClashGame.showKillFeed(`👑 ADMIN: O'lmaslik (God Mode): ${lp.isGodMode ? 'YOQILDI' : 'O\'CHIRILDI'}!`, true);
+        }
     }
 
     addTrophies(amount) {
@@ -800,3 +910,7 @@ class ShopAndQuestsManager {
 }
 
 window.shopAndQuests = new ShopAndQuestsManager();
+window.adminAddCoins = (amt = 50000) => window.shopAndQuests.adminAddCoins(amt);
+window.adminUnlockAll = () => window.shopAndQuests.adminUnlockAllSkins();
+window.adminMaxUpgrades = () => window.shopAndQuests.adminMaxUpgrades();
+window.adminGodMode = () => window.shopAndQuests.adminGodMode();

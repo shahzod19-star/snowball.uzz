@@ -1974,4 +1974,141 @@ body, html {
     transition: width 0.25s ease;
 }
 
+/* ------------------------------------------------------------------
+   TIL TANLASH (LANGUAGE SWITCHER PILL)
+   ------------------------------------------------------------------ */
+.lang-switcher-pill {
+    display: flex;
+    align-items: center;
+    background: rgba(14, 30, 56, 0.85);
+    border: 1.5px solid rgba(112, 214, 255, 0.4);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 3px;
+    backdrop-filter: blur(8px);
+}
+
+.lang-btn {
+    background: transparent;
+    border: none;
+    color: #a8dadc;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.lang-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.lang-btn.active {
+    background: linear-gradient(135deg, #70d6ff, #0077b6);
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(112, 214, 255, 0.5);
+}
+
+/* ------------------------------------------------------------------
+   KUN / TUN VA ADMIN TUGMALARI
+   ------------------------------------------------------------------ */
+.btn-time-of-day {
+    padding: 7px 12px !important;
+    width: auto !important;
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, rgba(255, 209, 102, 0.2), rgba(255, 158, 0, 0.25)) !important;
+    border-color: #ffd166 !important;
+    color: #ffd166 !important;
+}
+
+.btn-time-of-day.night {
+    background: linear-gradient(135deg, rgba(147, 197, 253, 0.2), rgba(30, 41, 59, 0.6)) !important;
+    border-color: #93c5fd !important;
+    color: #93c5fd !important;
+}
+
+.btn-admin-glow {
+    padding: 7px 12px !important;
+    width: auto !important;
+    font-size: 0.88rem !important;
+    font-weight: 900 !important;
+    background: linear-gradient(135deg, #e63946, #d90429) !important;
+    border: 1.5px solid #ff4d6d !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(230, 57, 70, 0.6) !important;
+    letter-spacing: 0.5px;
+}
+
+.btn-admin-glow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 22px rgba(230, 57, 70, 0.9) !important;
+}
+
+/* ------------------------------------------------------------------
+   ADMIN MODAL ACTIONS
+   ------------------------------------------------------------------ */
+.admin-grid-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+/* ------------------------------------------------------------------
+   MINIMAP (RADAR) IN HUD
+   ------------------------------------------------------------------ */
+.hud-minimap-container {
+    background: rgba(6, 18, 38, 0.85);
+    border: 2px solid rgba(112, 214, 255, 0.5);
+    border-radius: 12px;
+    padding: 5px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 12px rgba(112, 214, 255, 0.25);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    margin: 0 6px;
+}
+
+.minimap-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #a8dadc;
+    padding: 0 3px;
+}
+
+#minimapCanvas {
+    width: 110px;
+    height: 110px;
+    border-radius: 8px;
+    background: #081220;
+    display: block;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ------------------------------------------------------------------
+   MOBIL SAKRASH VA O'TIRISH TUGMALARI
+   ------------------------------------------------------------------ */
+.m-btn-jump {
+    background: linear-gradient(135deg, #00b4d8, #0077b6) !important;
+    border: 2px solid #90e0ef !important;
+    box-shadow: 0 0 16px rgba(0, 180, 216, 0.6) !important;
+}
+
+.m-btn-crouch {
+    background: linear-gradient(135deg, #4a5568, #2d3748) !important;
+    border: 2px solid #a0aec0 !important;
+    box-shadow: 0 0 12px rgba(160, 174, 192, 0.4) !important;
+}
+
+
 

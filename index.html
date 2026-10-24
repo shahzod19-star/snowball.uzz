@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Qor Jangi - Yangi Yil Shukuhi Online ❄️🎄</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Snow Clash 3D - Battle Royale & Minecraft Arena ❄️⚔️</title>
+    <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
 </head>
 <body>
@@ -27,17 +27,17 @@
         <header class="hud-top">
             <div class="hud-title-badge interactive">
                 <span>❄️</span>
-                <h1>QOR JANGI</h1>
+                <h1 id="hudTitleText">SNOW CLASH 3D</h1>
                 <span class="room-tag" id="hudRoomTag">1 vs 1</span>
             </div>
 
             <div class="match-score-board" id="scoreBoard">
                 <div class="team-score blue" id="scoreBlueContainer">
-                    <span>Ko'k:</span> <span class="score-num" id="scoreBlue">0</span>
+                    <span id="scoreBlueLabel">Ko'k:</span> <span class="score-num" id="scoreBlue">0</span>
                 </div>
                 <div class="match-timer" id="matchTimer">03:00</div>
                 <div class="team-score red" id="scoreRedContainer">
-                    <span>Qizil:</span> <span class="score-num" id="scoreRed">0</span>
+                    <span id="scoreRedLabel">Qizil:</span> <span class="score-num" id="scoreRed">0</span>
                 </div>
             </div>
 
@@ -45,6 +45,15 @@
             <button class="btn-perspective-pill interactive" id="btnTogglePerspective" title="Kamera rejimini almashtirish (V / F)">
                 👁️ 1-LITSO (FPS)
             </button>
+
+            <!-- Minimap HUD (Battle Royale & 50 kishilik Radar) -->
+            <div class="hud-minimap-container interactive" id="hudMinimapContainer">
+                <div class="minimap-header">
+                    <span id="minimapLabel">🗺️ RADAR</span>
+                    <span id="hudAliveBadge">50 Tirik</span>
+                </div>
+                <canvas id="minimapCanvas" width="130" height="130"></canvas>
+            </div>
 
             <div class="hud-controls interactive">
                 <button class="icon-btn" id="btnFullscreen" title="To'liq ekran (Fullscreen)">⛶</button>
@@ -116,10 +125,13 @@
 
             <div class="controls-guide-bar">
                 <span><span class="key-badge">W,A,S,D</span> Harakat</span>
-                <span><span class="key-badge">V / F</span> 1-Litso / 2-Litso</span>
-                <span id="guideWeaponKeys" style="display: none;"><span class="key-badge">1, 2, 3</span> Pichoq/Pistolet/Avtomat</span>
+                <span><span class="key-badge">Space</span> Sakrash</span>
+                <span><span class="key-badge">C</span> O'tirish</span>
+                <span><span class="key-badge">V / F</span> 1/2-Litso</span>
+                <span id="guideWeaponKeys" style="display: none;"><span class="key-badge">1, 2, 3</span> Pichoq/Pistolet/AK-47</span>
                 <span><span class="key-badge">Sichqoncha / Enter</span> Otish</span>
-                <span id="guideCraftOrReload"><span class="key-badge">Space / R</span> Qor / O'qlash</span>
+                <span id="guideCraftOrReload"><span class="key-badge">B / R</span> Qor / O'qlash</span>
+                <span><span class="key-badge">T</span> Kun/Tun</span>
                 <span><span class="key-badge">P / Esc</span> Pauza</span>
             </div>
         </footer>
@@ -142,6 +154,18 @@
 
         <!-- O'ng tomonda: Tezkor Sensorli Tugmalar -->
         <div class="mobile-actions-zone" id="mobileActionsZone">
+            <!-- Sakrash (Jump) -->
+            <button type="button" class="m-action-btn m-btn-jump" id="btnMobileJump" title="Sakrash">
+                <span class="m-btn-icon">🦘</span>
+                <span class="m-btn-text">SAKRA</span>
+            </button>
+
+            <!-- O'tirish (Crouch) -->
+            <button type="button" class="m-action-btn m-btn-crouch" id="btnMobileCrouch" title="O'tirish">
+                <span class="m-btn-icon">🧎</span>
+                <span class="m-btn-text">O'TIR</span>
+            </button>
+
             <!-- Tez yugurish (Sprint) -->
             <button type="button" class="m-action-btn m-btn-sprint" id="btnMobileSprint" title="Tez yugurish">
                 <span class="m-btn-icon">⚡</span>
@@ -199,12 +223,29 @@
 
             <!-- Markaziy Brend Logo -->
             <div class="lobby-brand-center">
-                <h1>❄️ QOR JANGI 🎄</h1>
-                <p>Yangi Yil Shukuhi • Online Multiplayer Arena</p>
+                <h1 id="brandTitle">❄️ SNOW CLASH 3D ⚔️</h1>
+                <p id="brandSubtitle">Minecraft 3D Arena & Battle Royale</p>
             </div>
 
             <!-- O'ngdagi Qo'shimcha Menyu, Musiqa va Sozlamalar -->
             <div class="lobby-top-right">
+                <!-- Til tanlash (Language Switcher) -->
+                <div class="lang-switcher-pill" id="langSwitcherPill">
+                    <button type="button" class="lang-btn active" data-lang="uz">🇺🇿 UZ</button>
+                    <button type="button" class="lang-btn" data-lang="ru">🇷🇺 RU</button>
+                    <button type="button" class="lang-btn" data-lang="en">🇬🇧 EN</button>
+                </div>
+
+                <!-- Kun / Tun rejimini almashtirish -->
+                <button class="btn-room-action btn-time-of-day" id="btnToggleDayNight" title="Kun / Tun rejimini almashtirish (T)">
+                    ☀️ KUN
+                </button>
+
+                <!-- Admin boshqaruv paneli -->
+                <button class="btn-room-action btn-admin-glow" id="btnOpenAdmin" title="Admin huquqlari va cheksiz tangalar">
+                    👑 ADMIN
+                </button>
+
                 <button class="btn-room-action btn-upgrades-glow" id="btnOpenUpgrades" style="padding: 7px 12px; width: auto; font-size: 0.88rem; background: linear-gradient(135deg, #ffd166, #ff9e00); color: #081324; font-weight: 800; border: none;">
                     ⚡ Kuchaytirish <span class="upgrade-pts-badge" id="upgradePointsBadge">1</span>
                 </button>
@@ -663,11 +704,45 @@
         </div>
     </div>
 
-    <script src="three.min.js"></script>
-    <script src="three_engine.js"></script>
-    <script src="audio.js"></script>
-    <script src="game.js"></script>
-    <script src="shop_quests.js"></script>
-    <script src="lobby.js"></script>
+    <!-- 13. ADMIN BOSHQARUV PANELI (ADMIN PANEL) MODALI -->
+    <div class="modal-backdrop interactive hidden" id="adminModal">
+        <div class="modal-card" style="max-width: 500px;">
+            <button class="modal-close-btn" data-close="adminModal">✕</button>
+            <h2>👑 ADMIN BOSHQARUV PANELI</h2>
+            <p class="modal-subtitle">Admin imtiyozlari: cheksiz tanga, barcha personajlar va qudrat</p>
+
+            <div class="admin-grid-actions">
+                <button type="button" class="btn-action-big" id="btnAdminCoins" style="background: linear-gradient(135deg, #ffd166, #ff9e00); color: #081324; width: 100%;">
+                    🪙 +50,000 Oltin Tanga Olish
+                </button>
+                <button type="button" class="btn-room-action" id="btnAdminUnlockAll" style="background: rgba(112, 214, 255, 0.2); border-color: #70d6ff; font-weight: 800; width: 100%;">
+                    🔓 Barcha Qahramonlarni Ochish
+                </button>
+                <button type="button" class="btn-room-action" id="btnAdminMaxLevel" style="background: rgba(6, 214, 160, 0.2); border-color: #06d6a0; font-weight: 800; width: 100%;">
+                    ⚡ 50-Daraja & Maksimal Kuch
+                </button>
+                <button type="button" class="btn-room-action" id="btnAdminGodMode" style="background: rgba(255, 77, 109, 0.2); border-color: #ff4d6d; font-weight: 800; width: 100%;">
+                    🛡️ O'lmaslik (God Mode) Yoqish/O'chirish
+                </button>
+            </div>
+
+            <div class="admin-console-box" style="margin-top: 14px; background: rgba(0,0,0,0.4); border-radius: 12px; padding: 12px; font-size: 0.82rem; color: #a8dadc; text-align: left; border: 1px solid rgba(255, 209, 102, 0.25);">
+                <div style="font-weight: 800; color: #ffd166; margin-bottom: 6px;">💻 Brauzer Konsoli (F12) orqali kiritish:</div>
+                <code style="display: block; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 6px; margin-bottom: 4px; color: #00f5d4;">game.addCoins(50000);</code>
+                <code style="display: block; background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 6px; color: #00f5d4;">window.shopAndQuests.adminAddCoins(50000);</code>
+            </div>
+
+            <button class="btn-action-big play" data-close="adminModal" style="width: 100%; margin-top: 14px;">
+                Yopish
+            </button>
+        </div>
+    </div>
+
+    <script src="js/three.min.js"></script>
+    <script src="js/three_engine.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/shop_quests.js"></script>
+    <script src="js/lobby.js"></script>
 </body>
 </html>

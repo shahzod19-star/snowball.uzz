@@ -101,10 +101,25 @@ class SnowClash3D {
     updateSkyAndFog() {
         if (!this.scene) return;
         const isGun = this.game.battleType === 'gun';
-        const skyColor = isGun ? 0x222733 : 0x78aaff;
-        const fogColor = isGun ? 0x222733 : 0xa0c4f8;
+        const isNight = (this.game.timeOfDay === 'night');
+        const skyColor = isNight ? 0x070b19 : (isGun ? 0x1f242e : 0x78aaff);
+        const fogColor = isNight ? 0x070b19 : (isGun ? 0x1f242e : 0xa0c4f8);
         this.scene.background = new THREE.Color(skyColor);
-        this.scene.fog = new THREE.FogExp2(fogColor, 0.0016);
+        this.scene.fog = new THREE.FogExp2(fogColor, isNight ? 0.0012 : 0.0016);
+
+        if (this.ambientLight && this.sunLight) {
+            if (isNight) {
+                this.ambientLight.color.setHex(0x1e293b);
+                this.ambientLight.intensity = 0.45;
+                this.sunLight.color.setHex(0x93c5fd);
+                this.sunLight.intensity = 0.65;
+            } else {
+                this.ambientLight.color.setHex(0xffffff);
+                this.ambientLight.intensity = isGun ? 0.60 : 0.75;
+                this.sunLight.color.setHex(0xfff5dd);
+                this.sunLight.intensity = 1.15;
+            }
+        }
     }
 
     onResize() {
@@ -310,17 +325,23 @@ class SnowClash3D {
         this.groundMesh.receiveShadow = true;
         this.scene.add(this.groundMesh);
 
-        // 2. Kvadrat Minecraft Quyosh (Square Sun Mesh)
+        // 2. Kvadrat Minecraft Quyosh yoki Oy (Square Sun / Moon Mesh)
+        const isNight = (this.game.timeOfDay === 'night');
         const sunGeo = new THREE.BoxGeometry(45, 45, 6);
-        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const sunMat = new THREE.MeshBasicMaterial({ color: isNight ? 0xe2e8f0 : 0xffffff });
         this.sunMesh = new THREE.Mesh(sunGeo, sunMat);
+        this.moonMesh = isNight ? this.sunMesh : null;
         this.sunMesh.position.set(220, 380, -500);
         this.sunMesh.rotation.y = Math.PI * 0.15;
         this.scene.add(this.sunMesh);
 
-        // Kvadrat quyoshning sariq nuri (Aura)
+        // Quyosh yoki Oy nuri (Aura Halo)
         const haloGeo = new THREE.BoxGeometry(75, 75, 2);
-        const haloMat = new THREE.MeshBasicMaterial({ color: 0xfff066, transparent: true, opacity: 0.45 });
+        const haloMat = new THREE.MeshBasicMaterial({
+            color: isNight ? 0x60a5fa : 0xfff066,
+            transparent: true,
+            opacity: isNight ? 0.35 : 0.45
+        });
         const haloMesh = new THREE.Mesh(haloGeo, haloMat);
         haloMesh.position.set(0, 0, -2);
         this.sunMesh.add(haloMesh);
@@ -887,47 +908,132 @@ class SnowClash3D {
                 this.playerMeshes.set(id, meshGroup);
             }
 
-            // Koordinata va burilish
+            // Koordinata, Sakrash (Jump) va O'tirish (Crouch)
             const targetX = p.x - mapW / 2;
             const targetZ = p.y - mapH / 2;
-            meshGroup.position.set(targetX, 0, targetZ);
+            const jumpY = (p.jumpZ || 0);
+            const crouchY = (p.isCrouching ? -5 : 0);
+            meshGroup.position.set(targetX, jumpY + crouchY, targetZ);
             meshGroup.rotation.y = -p.angle + Math.PI / 2;
 
-            // Yurish animatsiyasi (Walking cycle)
+            if (p.isCrouching) {
+                meshGroup.scale.set(1.0, 0.76, 1.0);
+            } else {
+                meshGroup.scale.set(1.0, 1.0, 1.0);
+            }
+
+            // Jonli animatsiya (Fluid Walking, Two-Handed Grip, Breathing)
             const ud = meshGroup.userData;
+            const curW = neededWeapon || (isGunBattle ? 'rifle' : 'snow');
+            const now = Date.now();
+
             if (p.isMoving && !p.isDead) {
                 const walk = p.walkCycle || 0;
                 if (ud.isCreeper) {
                     if (ud.legs) {
-                        ud.legs[0].rotation.x = Math.sin(walk) * 0.6;
-                        ud.legs[1].rotation.x = -Math.sin(walk) * 0.6;
-                        ud.legs[2].rotation.x = -Math.sin(walk) * 0.6;
-                        ud.legs[3].rotation.x = Math.sin(walk) * 0.6;
+                        ud.legs[0].rotation.x = Math.sin(walk * 1.5) * 0.65;
+                        ud.legs[1].rotation.x = -Math.sin(walk * 1.5) * 0.65;
+                        ud.legs[2].rotation.x = -Math.sin(walk * 1.5) * 0.65;
+                        ud.legs[3].rotation.x = Math.sin(walk * 1.5) * 0.65;
                     }
                 } else {
-                    if (ud.leftLegPivot) ud.leftLegPivot.rotation.x = Math.sin(walk) * 0.75;
-                    if (ud.rightLegPivot) ud.rightLegPivot.rotation.x = -Math.sin(walk) * 0.75;
+                    if (ud.leftLegPivot) ud.leftLegPivot.rotation.x = Math.sin(walk * 1.5) * 0.75;
+                    if (ud.rightLegPivot) ud.rightLegPivot.rotation.x = -Math.sin(walk * 1.5) * 0.75;
 
                     if (!ud.isZombie) {
-                        if (ud.leftArmPivot) ud.leftArmPivot.rotation.x = -Math.sin(walk) * 0.75;
-                        // Qurolli qo'l nishonga qarab turadi
-                        if (ud.rightArmPivot) {
-                            ud.rightArmPivot.rotation.x = (this.game.battleType === 'gun') ? -Math.PI / 3 : Math.sin(walk) * 0.4;
+                        if (isGunBattle) {
+                            if (curW === 'rifle') {
+                                // 💥 AVTOMAT / AK-47: IKKITA QO'L BILAN USHLASH (Two-Handed Grip)
+                                ud.holdingTwoHanded = true;
+                                if (ud.rightArmPivot) {
+                                    ud.rightArmPivot.rotation.x = -Math.PI / 2.5 + Math.sin(walk * 3) * 0.04;
+                                    ud.rightArmPivot.rotation.y = -0.22;
+                                    ud.rightArmPivot.rotation.z = 0.08;
+                                }
+                                if (ud.leftArmPivot) {
+                                    // Chap qo'l ko'krakdan o'tib avtomat stvolini ushlaydi
+                                    ud.leftArmPivot.rotation.x = -Math.PI / 2.3 + Math.sin(walk * 3) * 0.04;
+                                    ud.leftArmPivot.rotation.y = 0.52;
+                                    ud.leftArmPivot.rotation.z = -0.12;
+                                }
+                            } else {
+                                ud.holdingTwoHanded = false;
+                            } else if (curW === 'pistol') {
+                                // 🔫 PISTOLET: Taktik ushlash
+                                if (ud.rightArmPivot) {
+                                    ud.rightArmPivot.rotation.x = -Math.PI / 2.2 + Math.sin(walk * 3) * 0.03;
+                                    ud.rightArmPivot.rotation.y = -0.12;
+                                }
+                                if (ud.leftArmPivot) {
+                                    ud.leftArmPivot.rotation.x = -Math.PI / 2.2 + Math.sin(walk * 3) * 0.03;
+                                    ud.leftArmPivot.rotation.y = 0.35;
+                                }
+                            } else {
+                                // 🔪 PICHOQ: Yaqin jang holati
+                                if (ud.rightArmPivot) {
+                                    ud.rightArmPivot.rotation.x = -Math.PI / 2.8 + Math.sin(walk * 3) * 0.05;
+                                    ud.rightArmPivot.rotation.y = 0.2;
+                                }
+                                if (ud.leftArmPivot) {
+                                    ud.leftArmPivot.rotation.x = -Math.PI / 3.6;
+                                    ud.leftArmPivot.rotation.y = 0.25;
+                                }
+                            }
+                        } else {
+                            // Qor jangi: Klassik qo'llar silkinishi
+                            if (ud.leftArmPivot) ud.leftArmPivot.rotation.x = -Math.sin(walk * 1.5) * 0.75;
+                            if (ud.rightArmPivot) ud.rightArmPivot.rotation.x = Math.sin(walk * 1.5) * 0.4;
                         }
                     }
                 }
                 if (ud.bodyGroup) {
-                    ud.bodyGroup.position.y = Math.abs(Math.sin(walk * 2)) * 1.5;
+                    ud.bodyGroup.position.y = Math.abs(Math.sin(walk * 3)) * 1.6;
                 }
             } else {
-                // Turganda qo'l-oyoqlarni joyiga qaytarish
+                // Turganda: Nafas olish va jonli qurol holati
+                const breathe = Math.sin(now * 0.003) * 0.03;
                 if (ud.leftLegPivot) ud.leftLegPivot.rotation.x = 0;
                 if (ud.rightLegPivot) ud.rightLegPivot.rotation.x = 0;
-                if (!ud.isZombie && ud.leftArmPivot) ud.leftArmPivot.rotation.x = 0;
-                if (!ud.isZombie && ud.rightArmPivot) {
-                    ud.rightArmPivot.rotation.x = (this.game.battleType === 'gun') ? -Math.PI / 3 : 0;
+
+                if (!ud.isZombie) {
+                    if (isGunBattle) {
+                        if (curW === 'rifle') {
+                            // AK-47: Ikkita qo'l bilan ushlab turish
+                            if (ud.rightArmPivot) {
+                                ud.rightArmPivot.rotation.x = -Math.PI / 2.5 + breathe;
+                                ud.rightArmPivot.rotation.y = -0.22;
+                                ud.rightArmPivot.rotation.z = 0.08;
+                            }
+                            if (ud.leftArmPivot) {
+                                ud.leftArmPivot.rotation.x = -Math.PI / 2.3 + breathe;
+                                ud.leftArmPivot.rotation.y = 0.52;
+                                ud.leftArmPivot.rotation.z = -0.12;
+                            }
+                        } else if (curW === 'pistol') {
+                            if (ud.rightArmPivot) {
+                                ud.rightArmPivot.rotation.x = -Math.PI / 2.2 + breathe;
+                                ud.rightArmPivot.rotation.y = -0.12;
+                            }
+                            if (ud.leftArmPivot) {
+                                ud.leftArmPivot.rotation.x = -Math.PI / 2.2 + breathe;
+                                ud.leftArmPivot.rotation.y = 0.35;
+                            }
+                        } else {
+                            if (ud.rightArmPivot) {
+                                ud.rightArmPivot.rotation.x = -Math.PI / 2.8 + breathe;
+                                ud.rightArmPivot.rotation.y = 0.2;
+                            }
+                            if (ud.leftArmPivot) {
+                                ud.leftArmPivot.rotation.x = -Math.PI / 3.6;
+                                ud.leftArmPivot.rotation.y = 0.25;
+                            }
+                        }
+                    } else {
+                        if (ud.leftArmPivot) ud.leftArmPivot.rotation.x = 0;
+                        if (ud.rightArmPivot) ud.rightArmPivot.rotation.x = 0;
+                    }
                 }
-                if (ud.bodyGroup) ud.bodyGroup.position.y = 0;
+                if (ud.bodyGroup) ud.bodyGroup.position.y = Math.sin(now * 0.0025) * 0.5;
             }
 
             // O'lgan bo'lsa erga yotqizish
@@ -936,10 +1042,9 @@ class SnowClash3D {
                 meshGroup.position.y = 5;
             } else {
                 meshGroup.rotation.x = 0;
-                meshGroup.position.y = 0;
             }
 
-            // Agar 1-litso (FPS) bo'lsa va bu mahalliy o'yinchi bo'lsa, uni yashirish yoki faqat qo'lini ko'rsatish
+            // Agar 1-litso (FPS) bo'lsa va bu mahalliy o'yinchi bo'lsa, uni yashirish
             if (id === this.game.playerId && this.cameraMode === 'first_person') {
                 meshGroup.visible = false;
             } else {
