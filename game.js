@@ -83,8 +83,13 @@ class SnowClashGame {
             throwAnim: 0
         };
 
+        this.joystick = { active: false, touchId: null, centerX: 0, centerY: 0, dx: 0, dy: 0, maxRadius: 42 };
+        this.mobileSprinting = false;
+        this.touchAimActive = false;
+
         this.initSnowflakes(160);
         this.setupEventListeners();
+        this.initMobileControls();
         this.setupMap();
 
         this.lastTime = performance.now();
@@ -262,14 +267,179 @@ class SnowClashGame {
 
         window.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        this.canvas.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 0) {
-                const touch = e.touches[0];
-                this.mousePos.x = touch.clientX;
-                this.mousePos.y = touch.clientY;
+    }
+
+    initMobileControls() {
+        const mobileLayer = document.getElementById('mobileControlsLayer');
+        const joystickZone = document.getElementById('joystickZone');
+        const joystickKnob = document.getElementById('joystickKnob');
+        const btnSprint = document.getElementById('btnMobileSprint');
+        const btnCraft = document.getElementById('btnMobileCraft');
+        const btnShoot = document.getElementById('btnMobileShoot');
+
+        if (!joystickZone || !joystickKnob) return;
+
+        // Ekranga har qanday teginish sodir bo'lganda mobil boshqaruvni yoqish
+        window.addEventListener('touchstart', () => {
+            if (this.isRunning && !this.isGameOver && mobileLayer) {
+                mobileLayer.classList.add('active');
+            }
+        }, { passive: true });
+
+        // 1. JOYSTICK LOGIC (Pointer va Touch to'liq qo'llab-quvvatlanadi)
+        const updateStickPosition = (clientX, clientY) => {
+            if (!this.joystick.active) return;
+            const diffX = clientX - this.joystick.centerX;
+            const diffY = clientY - this.joystick.centerY;
+            const dist = Math.hypot(diffX, diffY);
+            const angle = Math.atan2(diffY, diffX);
+            const clampedDist = Math.min(dist, this.joystick.maxRadius);
+
+            const knobX = Math.cos(angle) * clampedDist;
+            const knobY = Math.sin(angle) * clampedDist;
+
+            joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+            if (dist > 4) {
+                this.joystick.dx = Math.cos(angle) * (clampedDist / this.joystick.maxRadius);
+                this.joystick.dy = Math.sin(angle) * (clampedDist / this.joystick.maxRadius);
+            } else {
+                this.joystick.dx = 0;
+                this.joystick.dy = 0;
+            }
+        };
+
+        const handleStickStart = (clientX, clientY, identifier) => {
+            this.joystick.active = true;
+            this.joystick.touchId = identifier;
+            const rect = joystickZone.getBoundingClientRect();
+            this.joystick.centerX = rect.left + rect.width / 2;
+            this.joystick.centerY = rect.top + rect.height / 2;
+            updateStickPosition(clientX, clientY);
+        };
+
+        const handleStickEnd = () => {
+            this.joystick.active = false;
+            this.joystick.touchId = null;
+            this.joystick.dx = 0;
+            this.joystick.dy = 0;
+            joystickKnob.style.transform = 'translate(-50%, -50%)';
+        };
+
+        // Pointer hodisalari
+        joystickZone.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try { e.target.setPointerCapture(e.pointerId); } catch(err) {}
+            handleStickStart(e.clientX, e.clientY, e.pointerId);
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (this.joystick.active && (this.joystick.touchId === null || this.joystick.touchId === e.pointerId)) {
+                updateStickPosition(e.clientX, e.clientY);
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (this.joystick.active) handleStickEnd();
+        });
+        window.addEventListener('pointercancel', () => {
+            if (this.joystick.active) handleStickEnd();
+        });
+
+        // Touch hodisalari (Safari & mobil brauzerlar)
+        joystickZone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.changedTouches.length > 0) {
+                const t = e.changedTouches[0];
+                handleStickStart(t.clientX, t.clientY, t.identifier);
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!this.joystick.active) return;
+            for (let i = 0; i < e.touches.length; i++) {
+                const t = e.touches[i];
+                if (t.identifier === this.joystick.touchId) {
+                    updateStickPosition(t.clientX, t.clientY);
+                    break;
+                }
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', (e) => {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === this.joystick.touchId) {
+                    handleStickEnd();
+                    break;
+                }
+            }
+        });
+        window.addEventListener('touchcancel', () => {
+            handleStickEnd();
+        });
+
+        // 2. SPRINT TUGMASI
+        if (btnSprint) {
+            const toggleSprint = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.mobileSprinting = !this.mobileSprinting;
+                btnSprint.classList.toggle('active', this.mobileSprinting);
+                if (window.soundSystem) window.soundSystem.playSnowStep();
+            };
+            btnSprint.addEventListener('pointerdown', toggleSprint);
+            btnSprint.addEventListener('touchstart', toggleSprint, { passive: false });
+            btnSprint.addEventListener('click', toggleSprint);
+        }
+
+        // 3. CRAFT TUGMASI
+        if (btnCraft) {
+            const doCraft = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
+                    this.startCrafting();
+                }
+            };
+            btnCraft.addEventListener('pointerdown', doCraft);
+            btnCraft.addEventListener('touchstart', doCraft, { passive: false });
+            btnCraft.addEventListener('click', doCraft);
+        }
+
+        // 4. SHOOT TUGMASI
+        if (btnShoot) {
+            const doShoot = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
                     this.throwSnowball();
                 }
+            };
+            btnShoot.addEventListener('pointerdown', doShoot);
+            btnShoot.addEventListener('touchstart', doShoot, { passive: false });
+            btnShoot.addEventListener('click', doShoot);
+        }
+
+        // 5. CANVAS DIRECT TAP-TO-SHOOT (Maydonga to'g'ridan-to'g'ri barmog'i bilan tegib otish)
+        const handleCanvasTouch = (clientX, clientY) => {
+            if (!this.isRunning || this.isPaused || this.localPlayer.isDead) return;
+            this.mousePos.x = clientX;
+            this.mousePos.y = clientY;
+            this.touchAimActive = true;
+            this.throwSnowball();
+            setTimeout(() => { this.touchAimActive = false; }, 350);
+        };
+
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (!this.isRunning || this.isPaused || this.localPlayer.isDead) return;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                if (this.joystick.active && t.identifier === this.joystick.touchId) continue;
+                const target = document.elementFromPoint(t.clientX, t.clientY);
+                if (target && target.closest('.m-action-btn, .joystick-zone, .interactive')) continue;
+                handleCanvasTouch(t.clientX, t.clientY);
             }
         }, { passive: false });
     }
@@ -302,6 +472,12 @@ class SnowClashGame {
         this.mapType = config.map || 'wonderland';
         this.roomCode = config.roomCode || '';
         this.isMultiplayer = config.isMultiplayer || false;
+        this.botDifficulty = config.botDifficulty || (window.shopAndQuests ? window.shopAndQuests.botDifficulty : 'normal');
+
+        // Qahramonning kuchaytirilgan (upgraded) va daraja (level) xususiyatlari
+        const playerStats = window.shopAndQuests ? window.shopAndQuests.getPlayerStats() : {
+            maxHp: 100, damage: 25, speed: 4.4, sprintSpeed: 5.6, maxSnowballs: 5, maxShield: 0, shield: 0
+        };
 
         this.isRunning = true;
         this.isPaused = false;
@@ -323,8 +499,15 @@ class SnowClashGame {
         this.localPlayer.characterType = this.characterType;
         this.localPlayer.skin = this.equippedSkin;
         this.localPlayer.snowballType = this.equippedSnowball;
-        this.localPlayer.hp = 100;
-        this.localPlayer.snowballs = 4;
+        this.localPlayer.maxHp = playerStats.maxHp;
+        this.localPlayer.hp = playerStats.maxHp;
+        this.localPlayer.speed = playerStats.speed;
+        this.localPlayer.sprintSpeed = playerStats.sprintSpeed;
+        this.localPlayer.maxSnowballs = playerStats.maxSnowballs;
+        this.localPlayer.snowballs = Math.min(4, playerStats.maxSnowballs);
+        this.localPlayer.snowballDamage = playerStats.damage;
+        this.localPlayer.maxShield = playerStats.maxShield;
+        this.localPlayer.shield = playerStats.shield;
         this.localPlayer.isCrafting = false;
         this.localPlayer.isDead = false;
         this.localPlayer.team = config.team || 'blue';
@@ -349,6 +532,16 @@ class SnowClashGame {
         this.updateHpUI();
         this.updateSnowballSlotsUI();
         this.updateScoreUI();
+
+        const mobileLayer = document.getElementById('mobileControlsLayer');
+        if (mobileLayer) {
+            const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
+            if (isTouch) {
+                mobileLayer.classList.add('active');
+            } else {
+                mobileLayer.classList.remove('active');
+            }
+        }
 
         if (this.timerInterval) clearInterval(this.timerInterval);
         this.timerInterval = setInterval(() => {
@@ -386,6 +579,10 @@ class SnowClashGame {
         const colors = ['#e63946', '#4cc9f0', '#06d6a0', '#ffd166', '#b5179e'];
         const skins = ['santa', 'ninja', 'king', 'bear', 'cyber'];
 
+        const botConf = window.shopAndQuests ? window.shopAndQuests.getBotConfig(this.botDifficulty) : {
+            difficulty: 'normal', speed: 3.5, hp: 100, maxHp: 100, damage: 24, throwCooldownMin: 30, throwCooldownMax: 45, spread: 0.14, canDodge: false, dodgeChance: 0, predictLead: 0, shield: 0, ballType: 'classic'
+        };
+
         let teamBlueCount = this.localPlayer.team === 'blue' ? 1 : 0;
         let teamRedCount = this.localPlayer.team === 'red' ? 1 : 0;
         let totalBots = 1;
@@ -397,7 +594,12 @@ class SnowClashGame {
 
         for (let i = 0; i < totalBots; i++) {
             const botId = 'bot_' + i;
-            const name = botNames[i % botNames.length];
+            let tag = '';
+            if (botConf.difficulty === 'hacker') tag = ' 💀[HACKER]';
+            else if (botConf.difficulty === 'pro') tag = ' 🔴[PRO]';
+            else if (botConf.difficulty === 'noob') tag = ' 🟢[NOOB]';
+
+            const name = botNames[i % botNames.length] + tag;
             let team = 'red';
 
             if (this.gameMode === '2v2') {
@@ -426,27 +628,37 @@ class SnowClashGame {
                 id: botId,
                 name: name,
                 isBot: true,
+                difficulty: botConf.difficulty,
                 x: spawnX,
                 y: spawnY,
                 radius: 22,
                 color: team === 'blue' ? '#4cc9f0' : (team === 'red' ? '#ff3366' : colors[i % colors.length]),
                 characterType: 'human',
-                skin: skins[i % skins.length],
-                snowballType: 'classic',
+                skin: (botConf.difficulty === 'hacker') ? 'cyber' : skins[i % skins.length],
+                snowballType: botConf.ballType || 'classic',
                 team: team,
-                hp: 100,
-                maxHp: 100,
-                snowballs: 3,
+                hp: botConf.hp,
+                maxHp: botConf.maxHp,
+                shield: botConf.shield || 0,
+                maxShield: botConf.shield || 0,
+                damage: botConf.damage || 24,
+                speed: botConf.speed,
+                spread: botConf.spread,
+                canDodge: botConf.canDodge,
+                dodgeChance: botConf.dodgeChance,
+                predictLead: botConf.predictLead,
+                throwCooldownMin: botConf.throwCooldownMin,
+                throwCooldownMax: botConf.throwCooldownMax,
+                snowballs: 4,
                 maxSnowballs: 5,
                 isCrafting: false,
                 craftProgress: 0,
-                craftDuration: 35,
-                speed: 3.4 + Math.random() * 0.4, // Botlar uchun ham o'rtacha normal tezlik
+                craftDuration: (botConf.difficulty === 'hacker' ? 20 : (botConf.difficulty === 'pro' ? 26 : 35)),
                 angle: 0,
                 walkCycle: 0,
                 isMoving: false,
                 isDead: false,
-                throwCooldown: Math.floor(Math.random() * 35) + 20,
+                throwCooldown: Math.floor(Math.random() * 20) + 15,
                 throwAnim: 0
             };
 
@@ -468,28 +680,69 @@ class SnowClashGame {
         this.createSnowSplash(this.localPlayer.x, this.localPlayer.y, '#ffffff', 8);
     }
 
-    // TEZ VA SHIDDATLI QOR OTISH!
-    throwSnowball() {
+    findNearestEnemy() {
+        let nearest = null;
+        let minDist = 520;
+        for (let [id, p] of this.players) {
+            if (p.id === this.localPlayer.id || p.isDead) continue;
+            if ((this.gameMode === '2v2' || this.gameMode === '4v4') && p.team === this.localPlayer.team) continue;
+            const d = Math.hypot(p.x - this.localPlayer.x, p.y - this.localPlayer.y);
+            if (d < minDist) {
+                minDist = d;
+                nearest = p;
+            }
+        }
+        return nearest;
+    }
+
+    // TEZ VA SHIDDATLI QOR OTISH (AUTO-AIM BILAN MOBIL MOSLASHGAN)
+    throwSnowball(targetAngle = null) {
         if (this.localPlayer.isCrafting || this.localPlayer.isDead) return;
         if (this.localPlayer.throwCooldown > 0) return;
 
         if (this.localPlayer.snowballs <= 0) {
-            this.showKillFeed("❌ Qoringiz qolmadi! [SPACE] bosib yerdan qor oling!", false);
+            this.showKillFeed("❌ Qoringiz qolmadi! Qor yasang yoki oling!", false);
             this.startCrafting();
             return;
         }
 
         this.localPlayer.snowballs--;
-        this.localPlayer.throwCooldown = 11; // Tezkor otish (avval 15 edi)
+        this.localPlayer.throwCooldown = 11;
         this.localPlayer.throwAnim = 8;
         this.updateSnowballSlotsUI();
 
-        const dx = this.mousePos.x - this.localPlayer.x;
-        const dy = this.mousePos.y - this.localPlayer.y;
-        const angle = Math.atan2(dy, dx);
-        const dist = Math.hypot(dx, dy);
-        
-        // QOR TO'PI TEZLIGI - O'rtacha qulay va aniq uchish
+        let angle = targetAngle;
+        let dist = 380;
+
+        if (angle === null) {
+            if (this.touchAimActive) {
+                // Ekranga barmog'i bilan tegilganda
+                const dx = this.mousePos.x - this.localPlayer.x;
+                const dy = this.mousePos.y - this.localPlayer.y;
+                angle = Math.atan2(dy, dx);
+                dist = Math.hypot(dx, dy);
+            } else {
+                // "OTISH" tugmasi bosilganda: Yaqin atrofda dushman bo'lsa Auto-Aim!
+                const nearest = this.findNearestEnemy();
+                if (nearest) {
+                    const edx = nearest.x - this.localPlayer.x;
+                    const edy = nearest.y - this.localPlayer.y;
+                    angle = Math.atan2(edy, edx);
+                    dist = Math.hypot(edx, edy);
+                    this.localPlayer.angle = angle;
+                } else if (this.localPlayer.isMoving || (this.joystick && this.joystick.active)) {
+                    // Harakat yo'nalishiga qarab otish
+                    angle = this.localPlayer.angle;
+                } else {
+                    const dx = this.mousePos.x - this.localPlayer.x;
+                    const dy = this.mousePos.y - this.localPlayer.y;
+                    angle = Math.atan2(dy, dx);
+                    dist = Math.hypot(dx, dy);
+                }
+            }
+        }
+
+        // QOR TO'PI TEZLIGI
         const speed = 15.5;
 
         const snowball = {
@@ -505,7 +758,7 @@ class SnowClashGame {
             radius: 8.5,
             maxDist: Math.min(dist + 80, 680),
             travelled: 0,
-            damage: 25
+            damage: this.localPlayer.snowballDamage || 25
         };
 
         this.snowballs.push(snowball);
@@ -523,15 +776,28 @@ class SnowClashGame {
         if (bot.snowballs <= 0 || bot.throwCooldown > 0 || bot.isDead) return;
 
         bot.snowballs--;
-        bot.throwCooldown = Math.floor(Math.random() * 35) + 20;
+        const minCd = bot.throwCooldownMin || 25;
+        const maxCd = bot.throwCooldownMax || 40;
+        bot.throwCooldown = Math.floor(Math.random() * (maxCd - minCd + 1)) + minCd;
         bot.throwAnim = 8;
 
-        const spread = (Math.random() - 0.5) * 0.18;
-        const dx = target.x - bot.x;
-        const dy = target.y - bot.y;
+        const speed = 14.5;
+        let targetX = target.x;
+        let targetY = target.y;
+        const dist = Math.hypot(targetX - bot.x, targetY - bot.y);
+
+        // Usta (Pro) va Kiber (Hacker) botlar uchun bashoratli nishonga olish (Predictive Aim)
+        if (bot.predictLead && target.isMoving) {
+            const travelTime = (dist / speed) * bot.predictLead;
+            const targetSpeed = target.isSprinting ? (target.sprintSpeed || 5.6) : (target.speed || 4.4);
+            targetX += Math.cos(target.angle) * targetSpeed * travelTime;
+            targetY += Math.sin(target.angle) * targetSpeed * travelTime;
+        }
+
+        const spread = (Math.random() - 0.5) * (bot.spread !== undefined ? bot.spread : 0.18);
+        const dx = targetX - bot.x;
+        const dy = targetY - bot.y;
         const angle = Math.atan2(dy, dx) + spread;
-        const dist = Math.hypot(dx, dy);
-        const speed = 14.5; // Botlar otish tezligi
 
         const snowball = {
             id: 'sb_' + Math.random().toString(36).substr(2, 7),
@@ -544,9 +810,9 @@ class SnowClashGame {
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
             radius: 8.5,
-            maxDist: Math.min(dist + 60, 640),
+            maxDist: Math.min(dist + 80, 680),
             travelled: 0,
-            damage: 25
+            damage: bot.damage || 24
         };
 
         this.snowballs.push(snowball);
@@ -612,6 +878,11 @@ class SnowClashGame {
 
         if (p.isCrafting) {
             p.craftProgress++;
+            const ring = document.getElementById('mobileCraftRing');
+            if (ring) {
+                const pct = Math.min(100, Math.round((p.craftProgress / p.craftDuration) * 100));
+                ring.style.background = `conic-gradient(#06d6a0 ${pct}%, transparent 0%)`;
+            }
             if (p.craftProgress >= p.craftDuration) {
                 p.isCrafting = false;
                 p.craftProgress = 0;
@@ -619,9 +890,13 @@ class SnowClashGame {
                     p.snowballs++;
                     this.updateSnowballSlotsUI();
                 }
+                if (ring) ring.style.background = 'none';
             }
             p.isMoving = false;
             return;
+        } else {
+            const ring = document.getElementById('mobileCraftRing');
+            if (ring && p.craftProgress === 0) ring.style.background = 'none';
         }
 
         let dx = 0;
@@ -632,14 +907,20 @@ class SnowClashGame {
         if (this.keys['a'] || this.keys['arrowleft'] || this.keys['keya']) dx -= 1;
         if (this.keys['d'] || this.keys['arrowright'] || this.keys['keyd']) dx += 1;
 
-        if (dx !== 0 && dy !== 0) {
+        // Virtual Joystik harakati
+        if (this.joystick && this.joystick.active && (Math.abs(this.joystick.dx) > 0.05 || Math.abs(this.joystick.dy) > 0.05)) {
+            dx = this.joystick.dx;
+            dy = this.joystick.dy;
+        }
+
+        if (dx !== 0 && dy !== 0 && (!this.joystick || !this.joystick.active)) {
             dx *= 0.7071;
             dy *= 0.7071;
         }
 
-        p.isMoving = (dx !== 0 || dy !== 0);
-        // Shift tugmasi bosilsa SPRINT (Tez yugurish)
-        p.isSprinting = (this.keys['shift'] || this.keys['shiftleft'] || this.keys['shiftright']) && p.isMoving;
+        p.isMoving = (Math.hypot(dx, dy) > 0.08);
+        // Shift tugmasi yoki Mobil Sprint yoqilganda
+        p.isSprinting = ((this.keys['shift'] || this.keys['shiftleft'] || this.keys['shiftright']) || this.mobileSprinting) && p.isMoving;
 
         const currentSpeed = p.isSprinting ? p.sprintSpeed : p.speed;
 
@@ -661,7 +942,14 @@ class SnowClashGame {
             }
         }
 
-        p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+        // Qahramonning nishon burchagi
+        if (this.touchAimActive) {
+            p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+        } else if (this.joystick && this.joystick.active && p.isMoving) {
+            p.angle = Math.atan2(dy, dx);
+        } else {
+            p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+        }
     }
 
     // YERDAGI TANGALARNI TERIB OLISH
@@ -679,6 +967,7 @@ class SnowClashGame {
                 coin.isCollected = true;
                 this.addCoins(coin.value);
                 this.createSnowSplash(coin.x, coin.y, '#ffd166', 10);
+                if (window.shopAndQuests) window.shopAndQuests.onCoinsCollected(coin.value);
                 if (window.soundSystem) window.soundSystem.playNote(587.33, 0.2, 0, 'sine', 0.2); // Ding!
             }
         }
@@ -728,15 +1017,37 @@ class SnowClashGame {
                 let moveDx = 0;
                 let moveDy = 0;
 
-                if (minDist > 280) {
-                    moveDx = Math.cos(bot.angle);
-                    moveDy = Math.sin(bot.angle);
-                } else if (minDist < 140) {
-                    moveDx = -Math.cos(bot.angle);
-                    moveDy = -Math.sin(bot.angle);
-                } else {
-                    moveDx = -Math.sin(bot.angle);
-                    moveDy = Math.cos(bot.angle);
+                // Usta (Pro) va Kiber (Hacker) botlar uchun qor to'pidan chaqqon chetlanish (Dodge)
+                let isDodging = false;
+                if (bot.canDodge) {
+                    for (let sb of this.snowballs) {
+                        if (sb.ownerTeam !== bot.team) {
+                            const d = Math.hypot(sb.x - bot.x, sb.y - bot.y);
+                            if (d < 170) {
+                                const dot = (sb.vx * (bot.x - sb.x)) + (sb.vy * (bot.y - sb.y));
+                                if (dot > 0 && Math.random() < (bot.dodgeChance || 0.75)) {
+                                    const sbSpeed = Math.hypot(sb.vx, sb.vy) || 1;
+                                    moveDx = -sb.vy / sbSpeed * 1.3;
+                                    moveDy = sb.vx / sbSpeed * 1.3;
+                                    isDodging = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!isDodging) {
+                    if (minDist > 280) {
+                        moveDx = Math.cos(bot.angle);
+                        moveDy = Math.sin(bot.angle);
+                    } else if (minDist < 140) {
+                        moveDx = -Math.cos(bot.angle);
+                        moveDy = -Math.sin(bot.angle);
+                    } else {
+                        moveDx = -Math.sin(bot.angle);
+                        moveDy = Math.cos(bot.angle);
+                    }
                 }
 
                 bot.isMoving = (moveDx !== 0 || moveDy !== 0);
@@ -752,7 +1063,7 @@ class SnowClashGame {
                     bot.y = nextY;
                 }
 
-                if (minDist < 520 && bot.throwCooldown <= 0 && Math.random() < 0.08) {
+                if (minDist < 520 && bot.throwCooldown <= 0 && Math.random() < 0.10) {
                     this.botThrowSnowball(bot, nearestEnemy);
                 }
             }
@@ -816,7 +1127,23 @@ class SnowClashGame {
     }
 
     applyDamage(target, snowball) {
-        target.hp -= snowball.damage;
+        let dmg = snowball.damage || 25;
+
+        // Muz Qalqoni (Frost Shield) himoyasi: zarbani birinchi bo'lib qalqon oladi
+        if (target.shield > 0) {
+            if (target.shield >= dmg) {
+                target.shield -= dmg;
+                dmg = 0;
+                this.createSnowSplash(snowball.x, snowball.y, '#00f5d4', 14);
+            } else {
+                dmg -= target.shield;
+                target.shield = 0;
+                this.createSnowSplash(snowball.x, snowball.y, '#00f5d4', 24); // Qalqon parchalanish effekti
+                if (window.soundSystem) window.soundSystem.playSnowCraft();
+            }
+        }
+
+        target.hp -= dmg;
         if (target.hp < 0) target.hp = 0;
 
         if (snowball.ownerId === this.localPlayer.id) {
@@ -895,6 +1222,16 @@ class SnowClashGame {
         if (this.isGameOver) return;
         this.isGameOver = true;
         this.isRunning = false;
+
+        const mobileLayer = document.getElementById('mobileControlsLayer');
+        if (mobileLayer) mobileLayer.classList.remove('active');
+        if (this.joystick) {
+            this.joystick.active = false;
+            this.joystick.dx = 0;
+            this.joystick.dy = 0;
+            const knob = document.getElementById('joystickKnob');
+            if (knob) knob.style.transform = 'translate(-50%, -50%)';
+        }
 
         const modal = document.getElementById('gameOverModal');
         const title = document.getElementById('gameOverTitle');
@@ -1003,17 +1340,47 @@ class SnowClashGame {
     updateHpUI() {
         const hpBar = document.getElementById('hudHpBar');
         const hpText = document.getElementById('hudHpText');
-        const pct = Math.max(0, Math.min(100, this.localPlayer.hp));
-        hpBar.style.width = pct + '%';
-        hpText.textContent = pct + ' HP';
-        if (pct < 35) hpBar.classList.add('danger');
-        else hpBar.classList.remove('danger');
+        const maxHp = this.localPlayer.maxHp || 100;
+        const curHp = Math.max(0, this.localPlayer.hp);
+        const pct = Math.max(0, Math.min(100, (curHp / maxHp) * 100));
+
+        if (hpBar) {
+            hpBar.style.width = pct + '%';
+            if (pct < 35) hpBar.classList.add('danger');
+            else hpBar.classList.remove('danger');
+        }
+        if (hpText) hpText.textContent = `${curHp} / ${maxHp} HP`;
+
+        const shieldContainer = document.getElementById('hudShieldContainer');
+        const shieldBar = document.getElementById('hudShieldBar');
+        const shieldText = document.getElementById('hudShieldText');
+
+        if (this.localPlayer.maxShield > 0) {
+            if (shieldContainer) shieldContainer.style.display = 'block';
+            if (shieldText) {
+                shieldText.style.display = 'inline';
+                shieldText.textContent = `🛡️ ${this.localPlayer.shield} / ${this.localPlayer.maxShield}`;
+            }
+            if (shieldBar) {
+                const shPct = Math.max(0, Math.min(100, (this.localPlayer.shield / this.localPlayer.maxShield) * 100));
+                shieldBar.style.width = shPct + '%';
+            }
+        } else {
+            if (shieldContainer) shieldContainer.style.display = 'none';
+            if (shieldText) shieldText.style.display = 'none';
+        }
     }
 
     updateSnowballSlotsUI() {
-        const slots = document.getElementById('snowballSlots').children;
-        for (let i = 0; i < slots.length; i++) {
-            slots[i].className = (i < this.localPlayer.snowballs) ? 'snowball-slot filled' : 'snowball-slot';
+        const slotsContainer = document.getElementById('snowballSlots');
+        if (!slotsContainer) return;
+        slotsContainer.innerHTML = '';
+        const max = this.localPlayer.maxSnowballs || 5;
+        const current = this.localPlayer.snowballs;
+        for (let i = 0; i < max; i++) {
+            const slot = document.createElement('div');
+            slot.className = (i < current) ? 'snowball-slot filled' : 'snowball-slot';
+            slotsContainer.appendChild(slot);
         }
     }
 
@@ -1360,6 +1727,21 @@ class SnowClashGame {
             this.drawClassicCharacter(ctx, p);
         }
 
+        // Muz Qalqoni (Frost Shield) gumbazi va neon aurasini chizish
+        if (p.shield > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = '#00f5d4';
+            ctx.lineWidth = 2.5;
+            ctx.fillStyle = 'rgba(0, 245, 212, 0.14)';
+            ctx.shadowColor = '#00f5d4';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
         if (p.isCrafting) {
             const prog = p.craftProgress / p.craftDuration;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
@@ -1386,8 +1768,17 @@ class SnowClashGame {
         const hpY = p.y - p.radius - 10;
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(hpX, hpY, hpWidth, hpHeight);
-        ctx.fillStyle = p.hp > 35 ? '#06d6a0' : '#ff3366';
-        ctx.fillRect(hpX, hpY, (p.hp / p.maxHp) * hpWidth, hpHeight);
+        ctx.fillStyle = (p.hp / (p.maxHp || 100)) > 0.35 ? '#06d6a0' : '#ff3366';
+        ctx.fillRect(hpX, hpY, (p.hp / (p.maxHp || 100)) * hpWidth, hpHeight);
+
+        // Overhead Qalqon mini-bari
+        if (p.shield > 0 && p.maxShield > 0) {
+            const shY = hpY - 4;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(hpX, shY, hpWidth, 3);
+            ctx.fillStyle = '#00f5d4';
+            ctx.fillRect(hpX, shY, Math.min(1, (p.shield / p.maxShield)) * hpWidth, 3);
+        }
 
         ctx.restore();
     }

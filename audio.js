@@ -331,6 +331,15 @@ class SoundSystem {
         noise.start(now);
     }
 
+    playLevelUp() {
+        if (!this.ctx || this.sfxMuted) return;
+        this.resume();
+        const notes = [329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+            this.playNote(freq, 0.35, idx * 0.08, 'triangle', 0.22);
+        });
+    }
+
     playVictory() {
         if (!this.ctx || this.sfxMuted) return;
         this.resume();

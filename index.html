@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Qor Jangi - Yangi Yil Shukuhi Online ❄️🎄</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
@@ -11,6 +11,15 @@
 
     <!-- Asosiy Canvas -->
     <canvas id="gameCanvas"></canvas>
+
+    <!-- LEVEL UP NOTIFICATION TOAST -->
+    <div class="level-up-toast hidden" id="levelUpToast">
+        <div class="level-up-toast-content">
+            <div class="level-up-badge">⭐ LEVEL UP! ⭐</div>
+            <h3 id="levelUpTitle">2-DARAJA!</h3>
+            <p id="levelUpDesc">+1 Kuchaytirish Ochkosi va +50 🪙 oldingiz!</p>
+        </div>
+    </div>
 
     <!-- O'YIN ICHIDAGI HUD (Jang paytida ko'rinadi) -->
     <div class="ui-overlay" id="inGameHUD">
@@ -32,6 +41,7 @@
             </div>
 
             <div class="hud-controls interactive">
+                <button class="icon-btn" id="btnFullscreen" title="To'liq ekran (Fullscreen)">⛶</button>
                 <button class="icon-btn" id="btnMusic" title="Musiqa (Yoqish/O'chirish)">🎵</button>
                 <button class="icon-btn" id="btnSfx" title="Ovoz effektlari (Yoqish/O'chirish)">🔊</button>
                 <button class="icon-btn" id="btnPause" title="Pauza (P / Esc)">⏸️</button>
@@ -45,7 +55,13 @@
             <div class="player-status-card interactive">
                 <div class="player-info-row">
                     <span class="player-name-hud" id="hudPlayerName">QorJangchisi</span>
-                    <span id="hudHpText" style="font-weight: 800; font-size: 0.9rem; color: #70d6ff;">100 HP</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="hudShieldText" style="font-weight: 800; font-size: 0.85rem; color: #00f5d4; display: none;">🛡️ 0 Qalqon</span>
+                        <span id="hudHpText" style="font-weight: 800; font-size: 0.9rem; color: #70d6ff;">100 HP</span>
+                    </div>
+                </div>
+                <div class="shield-bar-container" id="hudShieldContainer" style="display: none; margin-bottom: 4px;">
+                    <div class="shield-bar-fill" id="hudShieldBar" style="width: 100%;"></div>
                 </div>
                 <div class="hp-bar-container">
                     <div class="hp-bar-fill" id="hudHpBar"></div>
@@ -72,6 +88,39 @@
         </footer>
     </div>
 
+    <!-- Mobil Sensorli Boshqaruv (Virtual Joystick & Tugmalar) -->
+    <div class="mobile-controls-layer" id="mobileControlsLayer">
+        <!-- Chap tomonda: Dinamik Virtual Joystik -->
+        <div class="joystick-zone" id="joystickZone">
+            <div class="joystick-base" id="joystickBase">
+                <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+            <div class="joystick-guide-text">Harakat</div>
+        </div>
+
+        <!-- O'ng tomonda: Tezkor Sensorli Tugmalar -->
+        <div class="mobile-actions-zone" id="mobileActionsZone">
+            <!-- Tez yugurish (Sprint) -->
+            <button type="button" class="m-action-btn m-btn-sprint" id="btnMobileSprint" title="Tez yugurish">
+                <span class="m-btn-icon">⚡</span>
+                <span class="m-btn-text">TEZ</span>
+            </button>
+
+            <!-- Qor yasash (Craft) -->
+            <button type="button" class="m-action-btn m-btn-craft" id="btnMobileCraft" title="Qor yasash">
+                <div class="m-craft-progress-ring" id="mobileCraftRing"></div>
+                <span class="m-btn-icon">❄️</span>
+                <span class="m-btn-text">QOR</span>
+            </button>
+
+            <!-- Qor otish (Shoot) -->
+            <button type="button" class="m-action-btn m-btn-shoot" id="btnMobileShoot" title="Otish">
+                <span class="m-btn-icon">🎯</span>
+                <span class="m-btn-text">OTISH</span>
+            </button>
+        </div>
+    </div>
+
     <!-- =======================================================
          ZAMONAVIY PROFESSIONAL BOSH MENYU (LOBBY DASHBOARD)
          ======================================================= -->
@@ -86,7 +135,11 @@
                         <span class="profile-name" id="lobbyPlayerName">QorJangchisi ✏️</span>
                         <div class="profile-badges">
                             <span class="badge-trophy">🏆 <span id="lobbyTrophies">1,250</span></span>
-                            <span class="badge-level">⭐ <span id="lobbyLevel">5-Daraja</span></span>
+                            <span class="badge-level">⭐ <span id="lobbyLevel">1-Daraja</span></span>
+                        </div>
+                        <div class="profile-xp-container" title="Keyingi darajagacha tajriba (XP)">
+                            <div class="profile-xp-bar"><div class="profile-xp-fill" id="lobbyXpFill" style="width: 0%;"></div></div>
+                            <span class="profile-xp-label" id="lobbyXpText">0 / 75 XP</span>
                         </div>
                     </div>
                 </div>
@@ -104,6 +157,9 @@
 
             <!-- O'ngdagi Qo'shimcha Menyu, Musiqa va Sozlamalar -->
             <div class="lobby-top-right">
+                <button class="btn-room-action btn-upgrades-glow" id="btnOpenUpgrades" style="padding: 7px 12px; width: auto; font-size: 0.88rem; background: linear-gradient(135deg, #ffd166, #ff9e00); color: #081324; font-weight: 800; border: none;">
+                    ⚡ Kuchaytirish <span class="upgrade-pts-badge" id="upgradePointsBadge">1</span>
+                </button>
                 <button class="btn-room-action" id="btnOpenShop" style="padding: 7px 12px; width: auto; font-size: 0.88rem;">
                     🛒 Do'kon
                 </button>
@@ -176,6 +232,16 @@
                         <span class="mode-pill-title" style="font-size: 0.85rem;">🌲 O'rmon</span>
                     </div>
                 </div>
+
+                <div class="panel-section-title" style="margin-top: 10px;">
+                    <span>🎯</span> Raqib Kuchi (Bot Darajasi)
+                </div>
+                <div class="difficulty-picker-row" id="difficultyPicker">
+                    <button type="button" class="diff-btn" data-diff="noob" title="Yangi boshlovchilar uchun oson">🟢 Noob</button>
+                    <button type="button" class="diff-btn active" data-diff="normal" title="O'rtacha muvozanatli kuch">🟡 Normal</button>
+                    <button type="button" class="diff-btn" data-diff="pro" title="Chaqqon va nishonni aniq oladi">🔴 Pro</button>
+                    <button type="button" class="diff-btn" data-diff="hacker" title="Kiber boss, qalqonli va plazmali">💀 Hacker</button>
+                </div>
             </div>
 
             <!-- 2. Markaziy Ustun: Qahramon Ko'rgazmasi (Podium) -->
@@ -199,6 +265,11 @@
                     <div class="color-circle" style="background: #ffd166;" data-color="#ffd166" title="Oltin Quyosh"></div>
                     <div class="color-circle" style="background: #b5179e;" data-color="#b5179e" title="Bayramona Binafsha"></div>
                 </div>
+
+                <!-- Mobil uchun bevosita qahramon ostidagi Katta Start tugmasi -->
+                <button class="btn-action-big play mobile-hero-play-btn" id="btnMobileQuickPlay">
+                    <span>🚀</span> O'YINNI BOSHLASH
+                </button>
             </div>
 
             <!-- 3. O'ng Ustun: Xona va Amallar Boshqaruvi -->
@@ -490,6 +561,40 @@
 
             <button class="btn-action-big play" data-close="leaderboardModal" style="width: 100%; margin-top: 10px;">
                 Yopish
+            </button>
+        </div>
+    </div>
+
+    <!-- 12. QAHRAMONNI KUCHAYTIRISH (TOOL & STAT UPGRADES) MODALI -->
+    <div class="modal-backdrop interactive hidden" id="upgradesModal">
+        <div class="modal-card" style="max-width: 620px;">
+            <button class="modal-close-btn" data-close="upgradesModal">✕</button>
+            <h2>⚡ QAHRAMONNI KUCHAYTIRISH</h2>
+            <p class="modal-subtitle">
+                Kuchingizni oshiring! Jangda darajangiz oshgani sari qudratingiz ham ortadi.
+            </p>
+
+            <div class="upgrades-top-strip">
+                <div class="upg-strip-item">
+                    <span class="upg-strip-label">Daraja:</span>
+                    <span class="upg-strip-value" id="upgLevelDisplay" style="color: #70d6ff;">⭐ 1-Daraja</span>
+                </div>
+                <div class="upg-strip-item">
+                    <span class="upg-strip-label">Kuchaytirish Ochkosi:</span>
+                    <span class="upg-strip-value" id="upgPointsDisplay" style="color: #ffd166;">⚡ 1 ta</span>
+                </div>
+                <div class="upg-strip-item">
+                    <span class="upg-strip-label">Tangalar:</span>
+                    <span class="upg-strip-value" id="upgCoinsDisplay" style="color: #06d6a0;">🪙 100</span>
+                </div>
+            </div>
+
+            <div class="upgrades-list-grid" id="upgradesListContainer">
+                <!-- Javascript orqali renderlanadi -->
+            </div>
+
+            <button class="btn-action-big play" data-close="upgradesModal" style="width: 100%; margin-top: 14px;">
+                Yopish va Jang Qilish
             </button>
         </div>
     </div>

@@ -1,9 +1,21 @@
-// shop_quests.js - Do'kon (Shop), Vazifalar (Quests) va Reyting (Leaderboard) Tizimi
+// shop_quests.js - Do'kon (Shop), Vazifalar (Quests), Reyting (Leaderboard), Raqib Sozlamalari va Qahramonni Kuchaytirish (Upgrades) Tizimi
 
 class ShopAndQuestsManager {
     constructor() {
         this.coins = parseInt(localStorage.getItem('snow_coins') || '100', 10);
         this.trophies = parseInt(localStorage.getItem('snow_trophies') || '1250', 10);
+        this.level = parseInt(localStorage.getItem('snow_level') || '1', 10);
+        this.xp = parseInt(localStorage.getItem('snow_xp') || '0', 10);
+        this.upgradePoints = parseInt(localStorage.getItem('snow_upgrade_points') || '1', 10);
+        this.botDifficulty = localStorage.getItem('snow_bot_difficulty') || 'normal';
+
+        // Upgrades: hp, damage, speed, capacity, shield
+        let defaultUpgrades = { hp: 0, damage: 0, speed: 0, capacity: 0, shield: 0 };
+        try {
+            this.upgrades = Object.assign(defaultUpgrades, JSON.parse(localStorage.getItem('snow_player_upgrades') || '{}'));
+        } catch (e) {
+            this.upgrades = defaultUpgrades;
+        }
 
         // Sotib olingan buyumlar
         this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["santa"]');
@@ -29,6 +41,60 @@ class ShopAndQuestsManager {
             { id: 'rainbow', name: '🌈 Kamalak Qor to\'pi', price: 300, desc: 'Rang-barang sehrli kamalak effekti' }
         ];
 
+        // Kuchaytirish konfiguratsiyasi (5 ta asosiy parametr)
+        this.upgradesConfig = {
+            hp: {
+                name: "Maksimal Jon (Max HP)",
+                icon: "❤️",
+                maxLevel: 5,
+                base: 100,
+                perLevel: 15,
+                desc: "Jangda ko'proq zarbalarga bardosh berish qobiliyati",
+                costCoins: [80, 140, 220, 320, 450],
+                unit: "HP"
+            },
+            damage: {
+                name: "Qor Zarari (Snow Damage)",
+                icon: "💥",
+                maxLevel: 5,
+                base: 25,
+                perLevel: 6,
+                desc: "Raqibga tekkanda kuchliroq zarba yetkazadi",
+                costCoins: [90, 160, 240, 340, 480],
+                unit: "Zarar"
+            },
+            speed: {
+                name: "Harakat Tezligi (Speed)",
+                icon: "⚡",
+                maxLevel: 5,
+                base: 4.4,
+                perLevel: 0.35,
+                desc: "Maydonda tez yugurish va qordan oson qochish",
+                costCoins: [85, 150, 230, 330, 460],
+                unit: "Tezlik"
+            },
+            capacity: {
+                name: "Qor Zaxirasi (Snow Bag)",
+                icon: "🎒",
+                maxLevel: 5,
+                base: 5,
+                perLevel: 1,
+                desc: "Bir vaqtning o'zida olib yurish mumkin bo'lgan qorlar soni",
+                costCoins: [70, 130, 200, 290, 400],
+                unit: "ta Qor"
+            },
+            shield: {
+                name: "Muz Qalqoni (Frost Shield)",
+                icon: "🛡️",
+                maxLevel: 5,
+                base: 0,
+                perLevel: 25,
+                desc: "Joningizdan oldin zarbalarni qaytaruvchi moviy neon qalqon",
+                costCoins: [100, 180, 270, 380, 520],
+                unit: "Qalqon"
+            }
+        };
+
         // Vazifalar (Quests)
         this.quests = JSON.parse(localStorage.getItem('snow_quests_data') || JSON.stringify([
             { id: 'kills_5', title: '🎯 5 ta raqibni qor bilan yiqiting', target: 5, current: 0, reward: 60, claimed: false },
@@ -37,14 +103,18 @@ class ShopAndQuestsManager {
             { id: 'hits_20', title: '❄️ Raqiblarga 20 marta qor tekkizing', target: 20, current: 0, reward: 80, claimed: false }
         ]));
 
+        this.toastTimeout = null;
         this.initDOM();
     }
 
     initDOM() {
         this.updateCoinDisplays();
+        this.updateLevelDisplays();
         this.renderShop();
         this.renderQuests();
         this.renderLeaderboard();
+        this.renderUpgradesModal();
+        this.setupDifficultyPicker();
     }
 
     updateCoinDisplays() {
@@ -57,7 +127,355 @@ class ShopAndQuestsManager {
         if (shopCoins) shopCoins.textContent = this.coins;
     }
 
-    // DO'KONNI RENDERLASH
+    // ==============================================================
+    // LEVEL, XP VA KUCHAYTIRISH (TOOL / UPGRADES) TIZIMI
+    // ==============================================================
+    getXpNeeded(lvl) {
+        return Math.round(75 * Math.pow(lvl, 1.3));
+    }
+
+    addXP(amount) {
+        this.xp += amount;
+        let oldLevel = this.level;
+        let gainedLevels = 0;
+
+        while (this.xp >= this.getXpNeeded(this.level)) {
+            this.xp -= this.getXpNeeded(this.level);
+            this.level++;
+            this.upgradePoints += 1;
+            this.coins += 50;
+            gainedLevels++;
+        }
+
+        this.saveData();
+        this.updateCoinDisplays();
+        this.updateLevelDisplays();
+        this.renderUpgradesModal();
+
+        if (gainedLevels > 0) {
+            this.showLevelUpNotification(this.level, gainedLevels);
+        }
+    }
+
+    showLevelUpNotification(newLevel, gainedCount) {
+        if (window.soundSystem) window.soundSystem.playLevelUp();
+
+        const toast = document.getElementById('levelUpToast');
+        const title = document.getElementById('levelUpTitle');
+        const desc = document.getElementById('levelUpDesc');
+
+        if (toast && title && desc) {
+            title.textContent = `⭐ ${newLevel}-DARAJA!`;
+            desc.textContent = `+${gainedCount} Kuchaytirish Ochkosi va +${gainedCount * 50} 🪙 mukofot oldingiz!`;
+            toast.classList.remove('hidden');
+
+            if (this.toastTimeout) clearTimeout(this.toastTimeout);
+            this.toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3600);
+        }
+
+        if (window.snowClashGame) {
+            window.snowClashGame.showKillFeed(`🎉 LEVEL UP! Siz ${newLevel}-Darajaga ko'tarildingiz! Qudratingiz oshdi!`, true);
+        }
+    }
+
+    updateLevelDisplays() {
+        const xpNeeded = this.getXpNeeded(this.level);
+        const pct = Math.min(100, Math.floor((this.xp / xpNeeded) * 100));
+
+        // Lobby badge
+        const lobbyLvl = document.getElementById('lobbyLevel');
+        if (lobbyLvl) lobbyLvl.textContent = `${this.level}-Daraja`;
+
+        // Mini XP bar
+        const xpFill = document.getElementById('lobbyXpFill');
+        if (xpFill) xpFill.style.width = `${pct}%`;
+
+        const xpText = document.getElementById('lobbyXpText');
+        if (xpText) xpText.textContent = `${this.xp} / ${xpNeeded} XP`;
+
+        // Kuchaytirish tugmasidagi ochko indikatori
+        const upgBadge = document.getElementById('upgradePointsBadge');
+        if (upgBadge) upgBadge.textContent = this.upgradePoints;
+
+        // Modal ichidagi ma'lumotlar
+        const upgLevelDisp = document.getElementById('upgLevelDisplay');
+        if (upgLevelDisp) upgLevelDisp.textContent = `⭐ ${this.level}-Daraja`;
+
+        const upgPointsDisp = document.getElementById('upgPointsDisplay');
+        if (upgPointsDisp) upgPointsDisp.textContent = `⚡ ${this.upgradePoints} ta`;
+
+        const upgCoinsDisp = document.getElementById('upgCoinsDisplay');
+        if (upgCoinsDisp) upgCoinsDisp.textContent = `🪙 ${this.coins}`;
+    }
+
+    getPlayerStats() {
+        // Har bir daraja uchun o'z-o'zidan passiv qo'shimcha quvvat (+3 HP, +1 zarar)
+        const lvlBonusHp = (this.level - 1) * 3;
+        const lvlBonusDmg = (this.level - 1) * 1;
+
+        const hpLvl = Math.min(5, this.upgrades.hp || 0);
+        const dmgLvl = Math.min(5, this.upgrades.damage || 0);
+        const spdLvl = Math.min(5, this.upgrades.speed || 0);
+        const capLvl = Math.min(5, this.upgrades.capacity || 0);
+        const shdLvl = Math.min(5, this.upgrades.shield || 0);
+
+        return {
+            maxHp: 100 + (hpLvl * 15) + lvlBonusHp,
+            damage: 25 + (dmgLvl * 6) + lvlBonusDmg,
+            speed: +(4.4 + (spdLvl * 0.35)).toFixed(2),
+            sprintSpeed: +(5.6 + (spdLvl * 0.4)).toFixed(2),
+            maxSnowballs: 5 + capLvl,
+            maxShield: shdLvl * 25,
+            shield: shdLvl * 25
+        };
+    }
+
+    upgradeStat(statKey, usePoints = true) {
+        const cfg = this.upgradesConfig[statKey];
+        if (!cfg) return;
+        const currentLvl = this.upgrades[statKey] || 0;
+        if (currentLvl >= cfg.maxLevel) return;
+
+        if (usePoints) {
+            if (this.upgradePoints < 1) return;
+            this.upgradePoints -= 1;
+        } else {
+            const cost = cfg.costCoins[currentLvl] || 9999;
+            if (this.coins < cost) return;
+            this.coins -= cost;
+        }
+
+        this.upgrades[statKey] = currentLvl + 1;
+        this.saveData();
+
+        if (window.soundSystem) window.soundSystem.playVictory();
+        this.updateCoinDisplays();
+        this.updateLevelDisplays();
+        this.renderUpgradesModal();
+
+        // Agar o'yin davomida bo'lsa, xususiyatlarni darhol jonlantirish
+        if (window.snowClashGame && window.snowClashGame.localPlayer) {
+            const s = this.getPlayerStats();
+            const p = window.snowClashGame.localPlayer;
+            p.maxHp = s.maxHp;
+            p.hp = Math.min(p.hp + 15, s.maxHp);
+            p.speed = s.speed;
+            p.sprintSpeed = s.sprintSpeed;
+            p.maxSnowballs = s.maxSnowballs;
+            p.snowballDamage = s.damage;
+            p.maxShield = s.maxShield;
+            if (statKey === 'shield') p.shield = s.shield;
+            window.snowClashGame.updateHpUI();
+            window.snowClashGame.updateSnowballSlotsUI();
+        }
+    }
+
+    renderUpgradesModal() {
+        const container = document.getElementById('upgradesListContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        for (let [key, cfg] of Object.entries(this.upgradesConfig)) {
+            const curLvl = this.upgrades[key] || 0;
+            const isMax = curLvl >= cfg.maxLevel;
+            const coinCost = isMax ? 0 : (cfg.costCoins[curLvl] || 0);
+
+            let curVal, nextVal;
+            if (key === 'hp') {
+                curVal = `${100 + curLvl * cfg.perLevel + (this.level - 1) * 3} ${cfg.unit}`;
+                nextVal = isMax ? 'MAX' : `${100 + (curLvl + 1) * cfg.perLevel + (this.level - 1) * 3} ${cfg.unit}`;
+            } else if (key === 'damage') {
+                curVal = `${25 + curLvl * cfg.perLevel + (this.level - 1) * 1} ${cfg.unit}`;
+                nextVal = isMax ? 'MAX' : `${25 + (curLvl + 1) * cfg.perLevel + (this.level - 1) * 1} ${cfg.unit}`;
+            } else if (key === 'speed') {
+                curVal = `${(4.4 + curLvl * cfg.perLevel).toFixed(2)} ${cfg.unit}`;
+                nextVal = isMax ? 'MAX' : `${(4.4 + (curLvl + 1) * cfg.perLevel).toFixed(2)} ${cfg.unit}`;
+            } else if (key === 'capacity') {
+                curVal = `${5 + curLvl * cfg.perLevel} ${cfg.unit}`;
+                nextVal = isMax ? 'MAX' : `${5 + (curLvl + 1) * cfg.perLevel} ${cfg.unit}`;
+            } else if (key === 'shield') {
+                curVal = `${curLvl * cfg.perLevel} ${cfg.unit}`;
+                nextVal = isMax ? 'MAX' : `${(curLvl + 1) * cfg.perLevel} ${cfg.unit}`;
+            }
+
+            let pipsHtml = '';
+            for (let i = 0; i < cfg.maxLevel; i++) {
+                pipsHtml += `<div class="upg-meter-pip ${i < curLvl ? 'filled' : ''}"></div>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `upgrade-card ${isMax ? 'maxed' : ''}`;
+
+            let actionsHtml = '';
+            if (isMax) {
+                actionsHtml = `<button class="btn-upg-action" disabled style="background: rgba(6, 214, 160, 0.2); color: #06d6a0;">MAKSIMAL ✅</button>`;
+            } else {
+                const canUsePoint = this.upgradePoints >= 1;
+                const canUseCoins = this.coins >= coinCost;
+
+                actionsHtml = `
+                    <button class="btn-upg-action point" data-upg-key="${key}" data-upg-type="point" ${canUsePoint ? '' : 'disabled'}>
+                        ⚡ 1 Ochko
+                    </button>
+                    <button class="btn-upg-action coins" data-upg-key="${key}" data-upg-type="coins" ${canUseCoins ? '' : 'disabled'}>
+                        🪙 ${coinCost} Tanga
+                    </button>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="upg-card-header">
+                    <div class="upg-card-title">
+                        <span>${cfg.icon}</span>
+                        <span>${cfg.name}</span>
+                    </div>
+                    <span class="upg-card-level-badge">${isMax ? 'MAX DARAJA' : `${curLvl}/${cfg.maxLevel}-Daraja`}</span>
+                </div>
+                <div class="upg-card-desc">${cfg.desc}</div>
+                <div class="upg-stats-row">
+                    <span class="upg-stat-current">${curVal}</span>
+                    <span class="upg-stat-arrow">${isMax ? '★' : '➜'}</span>
+                    <span class="upg-stat-next">${nextVal}</span>
+                </div>
+                <div class="upg-card-footer">
+                    <div class="upg-meter">${pipsHtml}</div>
+                    <div class="upg-actions-group">${actionsHtml}</div>
+                </div>
+            `;
+
+            container.appendChild(card);
+        }
+
+        container.querySelectorAll('[data-upg-key]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-upg-key');
+                const type = btn.getAttribute('data-upg-type');
+                this.upgradeStat(key, type === 'point');
+            });
+        });
+    }
+
+    // ==============================================================
+    // DUSHMAN / BOT QIYINLIK DARAJASI (NOOB -> PRO -> HACKER)
+    // ==============================================================
+    getBotConfig(difficulty = this.botDifficulty) {
+        switch (difficulty) {
+            case 'noob':
+                return {
+                    difficulty: 'noob',
+                    label: "🟢 Noob (Oson)",
+                    speed: 2.5,
+                    hp: 75,
+                    maxHp: 75,
+                    damage: 15,
+                    throwCooldownMin: 50,
+                    throwCooldownMax: 75,
+                    spread: 0.38,
+                    canDodge: false,
+                    dodgeChance: 0,
+                    predictLead: 0,
+                    shield: 0,
+                    ballType: 'classic',
+                    color: '#48cae4'
+                };
+            case 'pro':
+                return {
+                    difficulty: 'pro',
+                    label: "🔴 Pro (Usta)",
+                    speed: 4.5,
+                    hp: 130,
+                    maxHp: 130,
+                    damage: 30,
+                    throwCooldownMin: 18,
+                    throwCooldownMax: 28,
+                    spread: 0.04,
+                    canDodge: true,
+                    dodgeChance: 0.75,
+                    predictLead: 0.85,
+                    shield: 0,
+                    ballType: 'classic',
+                    color: '#ff0054'
+                };
+            case 'hacker':
+                return {
+                    difficulty: 'hacker',
+                    label: "💀 Hacker (Boss)",
+                    speed: 5.3,
+                    hp: 160,
+                    maxHp: 160,
+                    damage: 36,
+                    throwCooldownMin: 12,
+                    throwCooldownMax: 20,
+                    spread: 0.01,
+                    canDodge: true,
+                    dodgeChance: 0.92,
+                    predictLead: 1.0,
+                    shield: 50,
+                    ballType: 'plasma',
+                    color: '#9d4edd'
+                };
+            case 'normal':
+            default:
+                return {
+                    difficulty: 'normal',
+                    label: "🟡 Normal (O'rtacha)",
+                    speed: 3.5,
+                    hp: 100,
+                    maxHp: 100,
+                    damage: 24,
+                    throwCooldownMin: 30,
+                    throwCooldownMax: 45,
+                    spread: 0.14,
+                    canDodge: false,
+                    dodgeChance: 0,
+                    predictLead: 0,
+                    shield: 0,
+                    ballType: 'classic',
+                    color: '#ffd166'
+                };
+        }
+    }
+
+    setBotDifficulty(diff) {
+        this.botDifficulty = diff;
+        localStorage.setItem('snow_bot_difficulty', diff);
+
+        const buttons = document.querySelectorAll('#difficultyPicker .diff-btn');
+        buttons.forEach(btn => {
+            if (btn.getAttribute('data-diff') === diff) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (window.soundSystem) window.soundSystem.playSnowCraft();
+    }
+
+    setupDifficultyPicker() {
+        const picker = document.getElementById('difficultyPicker');
+        if (!picker) return;
+
+        const btns = picker.querySelectorAll('.diff-btn');
+        btns.forEach(btn => {
+            const diff = btn.getAttribute('data-diff');
+            if (diff === this.botDifficulty) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+
+            btn.addEventListener('click', () => {
+                this.setBotDifficulty(diff);
+            });
+        });
+    }
+
+    // ==============================================================
+    // DO'KON (SHOP) TIZIMI
+    // ==============================================================
     renderShop() {
         const skinsContainer = document.getElementById('shopSkinsList');
         const ballsContainer = document.getElementById('shopBallsList');
@@ -196,6 +614,12 @@ class ShopAndQuestsManager {
 
     saveData() {
         localStorage.setItem('snow_coins', this.coins);
+        localStorage.setItem('snow_trophies', this.trophies);
+        localStorage.setItem('snow_level', this.level);
+        localStorage.setItem('snow_xp', this.xp);
+        localStorage.setItem('snow_upgrade_points', this.upgradePoints);
+        localStorage.setItem('snow_bot_difficulty', this.botDifficulty);
+        localStorage.setItem('snow_player_upgrades', JSON.stringify(this.upgrades));
         localStorage.setItem('snow_owned_skins', JSON.stringify(this.ownedSkins));
         localStorage.setItem('snow_owned_balls', JSON.stringify(this.ownedBalls));
         localStorage.setItem('snow_equipped_skin', this.equippedSkin);
@@ -203,7 +627,9 @@ class ShopAndQuestsManager {
         localStorage.setItem('snow_quests_data', JSON.stringify(this.quests));
     }
 
-    // VAZIFALARNI (QUESTS) RENDERLASH
+    // ==============================================================
+    // VAZIFALAR (QUESTS) TIZIMI
+    // ==============================================================
     renderQuests() {
         const container = document.getElementById('questsListContainer');
         if (!container) return;
@@ -257,44 +683,42 @@ class ShopAndQuestsManager {
         }
     }
 
-    // O'yin hodisalari bo'yicha vazifalarni bajarish
     onEnemyEliminated() {
         const q = this.quests.find(item => item.id === 'kills_5');
         if (q && q.current < q.target) {
             q.current++;
-            this.saveData();
             this.renderQuests();
         }
-        // Kuboklar sonini oshirish
         this.addTrophies(25);
+        this.addXP(60); // Raqib yiqitilganda +60 XP!
     }
 
     onMatchWon() {
         const q = this.quests.find(item => item.id === 'wins_2');
         if (q && q.current < q.target) {
             q.current++;
-            this.saveData();
             this.renderQuests();
         }
         this.addTrophies(40);
+        this.addXP(150); // Jangda g'alaba qozonilganda +150 XP!
     }
 
-    onCoinsCollected(amount) {
+    onCoinsCollected(amount = 1) {
         const q = this.quests.find(item => item.id === 'coins_10');
         if (q && q.current < q.target) {
-            q.current++;
-            this.saveData();
+            q.current += amount;
             this.renderQuests();
         }
+        this.addXP(5 * amount); // Har bir tanga uchun +5 XP!
     }
 
     onSnowballHit() {
         const q = this.quests.find(item => item.id === 'hits_20');
         if (q && q.current < q.target) {
             q.current++;
-            this.saveData();
             this.renderQuests();
         }
+        this.addXP(15); // Har bir tekkizilgan qor uchun +15 XP!
     }
 
     addTrophies(amount) {
@@ -305,7 +729,9 @@ class ShopAndQuestsManager {
         this.renderLeaderboard();
     }
 
+    // ==============================================================
     // REYTING (LEADERBOARD) TIZIMI (TOP 1, 2, 3, 100, 500)
+    // ==============================================================
     renderLeaderboard() {
         const container = document.getElementById('leaderboardList');
         if (!container) return;
@@ -313,7 +739,6 @@ class ShopAndQuestsManager {
 
         const playerName = localStorage.getItem('snow_player_name') || 'QorJangchisi';
 
-        // Reytingdagi Top 8 nafar afsonaviy o'yinchi
         const topPlayers = [
             { rank: 1, name: 'Muzlatuvchi_X', trophies: 5420, kills: 480, badge: '🥇 OLTIN' },
             { rank: 2, name: 'SnowSniper_UZ', trophies: 4890, kills: 412, badge: '🥈 KUMUSH' },
@@ -324,7 +749,6 @@ class ShopAndQuestsManager {
             { rank: 7, name: 'Bobur_Ice', trophies: 2450, kills: 180, badge: '⭐ PLATINA' }
         ];
 
-        // O'yinchining reytingdagi taxminiy o'rni
         let myRank = 42;
         if (this.trophies >= 5000) myRank = 2;
         else if (this.trophies >= 4000) myRank = 4;
@@ -348,7 +772,6 @@ class ShopAndQuestsManager {
             container.appendChild(row);
         });
 
-        // O'yinchining o'z o'rni
         const myRow = document.createElement('div');
         myRow.className = 'leaderboard-row my-rank';
         myRow.innerHTML = `

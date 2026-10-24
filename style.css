@@ -28,6 +28,10 @@ body, html {
     font-family: 'Nunito', sans-serif;
     background: radial-gradient(circle at 50% 25%, #15325b 0%, #061120 100%);
     color: var(--snow-white);
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
 }
 
 #gameCanvas {
@@ -1125,16 +1129,680 @@ body, html {
     color: #000;
 }
 
-/* Mobil moslashuv */
+/* ========================================================
+   MOBIL SENSORLI BOSHQARUV (TOUCH CONTROLS) & RESPONSIVE
+   ======================================================== */
+.mobile-hero-play-btn {
+    display: none;
+    margin-top: 14px;
+    width: 100%;
+    max-width: 260px;
+    font-size: 1.15rem;
+    padding: 14px 20px;
+}
+
+.mobile-controls-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 999;
+    display: none;
+}
+
+/* Mobil qurilmalarda yoki sensorli ekranda faollashadi */
+.mobile-controls-layer.active {
+    display: block;
+}
+
+/* Chap tomondagi Joystik zonasi */
+.joystick-zone {
+    position: absolute;
+    bottom: 25px;
+    left: 20px;
+    width: 145px;
+    height: 145px;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.joystick-base {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(14, 32, 60, 0.55) 0%, rgba(6, 18, 38, 0.85) 100%);
+    border: 3px solid rgba(112, 214, 255, 0.6);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 25px rgba(112, 214, 255, 0.4), inset 0 0 20px rgba(112, 214, 255, 0.25);
+    position: relative;
+    touch-action: none;
+}
+
+.joystick-knob {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #70d6ff 0%, #0077b6 100%);
+    border: 2.5px solid #ffffff;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), 0 0 15px rgba(112, 214, 255, 1);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    transition: transform 0.04s ease-out;
+}
+
+.joystick-guide-text {
+    font-size: 0.72rem;
+    color: var(--ice-blue);
+    font-weight: 800;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+/* O'ng tomondagi amallar (Tugmalar) */
+.mobile-actions-zone {
+    position: absolute;
+    bottom: 25px;
+    right: 20px;
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.m-action-btn {
+    border: none;
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: transform 0.1s ease, filter 0.1s ease;
+}
+
+.m-action-btn:active {
+    transform: scale(0.92);
+}
+
+/* 1. Sprint (Tez yugurish) */
+.m-btn-sprint {
+    width: 58px;
+    height: 58px;
+    background: linear-gradient(135deg, #ffd166, #f77f00);
+    border: 2px solid #ffe6a7;
+    margin-bottom: 8px;
+}
+
+.m-btn-sprint.active {
+    box-shadow: 0 0 25px #ffd166, 0 4px 14px rgba(255, 209, 102, 0.9);
+    border-color: #ffffff;
+    transform: scale(1.08);
+}
+
+/* 2. Qor olish (Craft) */
+.m-btn-craft {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #06d6a0, #0077b6);
+    border: 2.5px solid #a7ffeb;
+    margin-bottom: 22px;
+}
+
+.m-craft-progress-ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: none;
+    transition: background 0.05s ease;
+}
+
+/* 3. Otish (Shoot) */
+.m-btn-shoot {
+    width: 86px;
+    height: 86px;
+    background: linear-gradient(135deg, #ff3366, #d90429);
+    border: 3.5px solid #ffccd5;
+    box-shadow: 0 8px 30px rgba(255, 51, 102, 0.65);
+}
+
+.m-btn-shoot:active {
+    box-shadow: 0 0 35px rgba(255, 51, 102, 1);
+    transform: scale(0.94);
+}
+
+.m-btn-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.m-btn-shoot .m-btn-icon {
+    font-size: 2.1rem;
+}
+
+.m-btn-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.68rem;
+    margin-top: 3px;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Kichik ekranlar va telefonlar uchun to'liq moslashuv */
 @media (max-width: 900px) {
+    .mobile-hero-play-btn {
+        display: flex !important;
+    }
+    .lobby-actions-column #btnQuickPlay {
+        display: none !important;
+    }
+    .main-lobby-screen {
+        padding: 12px 14px;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        justify-content: flex-start;
+        gap: 14px;
+    }
+    .lobby-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .lobby-brand-center {
+        text-align: center;
+        order: -1;
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    .lobby-brand-center h1 {
+        font-size: 1.5rem;
+    }
+    .lobby-top-right {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+    }
     .lobby-main-body {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
         height: auto;
-        overflow-y: auto;
+        max-height: none;
+        overflow: visible;
+        padding-bottom: 45px;
     }
     .hero-stage-container {
-        order: -1;
-        margin-bottom: 20px;
+        order: 1 !important;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 6px;
     }
-    .controls-guide-bar { display: none; }
+    .lobby-panel-box {
+        order: 2 !important;
+        width: 100%;
+    }
+    .lobby-actions-column {
+        order: 3 !important;
+        width: 100%;
+    }
+
+    .controls-guide-bar { display: none !important; }
+    .craft-hint { display: none !important; }
+
+    /* In-game HUD optimizatsiyasi */
+    .hud-top {
+        padding: 8px 12px;
+    }
+    .hud-title-badge h1 {
+        display: none;
+    }
+    .match-score-board {
+        padding: 4px 12px;
+        font-size: 0.95rem;
+    }
+    .player-status-card {
+        bottom: 12px;
+        left: 50% !important;
+        transform: translateX(-50%);
+        width: 190px !important;
+        padding: 6px 12px !important;
+        background: rgba(14, 30, 56, 0.92);
+    }
+    .modal-card {
+        width: 95vw !important;
+        max-width: 440px !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        padding: 18px 14px !important;
+    }
+    .shop-modal-grid {
+        grid-template-columns: 1fr;
+    }
 }
+
+@media (max-width: 480px) {
+    .joystick-zone {
+        bottom: 16px;
+        left: 12px;
+        width: 125px;
+        height: 125px;
+    }
+    .joystick-base {
+        width: 110px;
+        height: 110px;
+    }
+    .joystick-knob {
+        width: 48px;
+        height: 48px;
+    }
+    .mobile-actions-zone {
+        bottom: 16px;
+        right: 12px;
+        gap: 8px;
+    }
+    .m-btn-shoot {
+        width: 76px;
+        height: 76px;
+    }
+    .m-btn-craft {
+        width: 62px;
+        height: 62px;
+        margin-bottom: 16px;
+    }
+    .m-btn-sprint {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+/* ------------------------------------------------------------------
+   DIFFICULTY PICKER (ROBOT/DUSHMAN KUCHI TANLASH)
+   ------------------------------------------------------------------ */
+.difficulty-picker-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.diff-btn {
+    background: rgba(14, 30, 56, 0.7);
+    border: 1.5px solid var(--card-border);
+    color: var(--snow-white);
+    padding: 8px 4px;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.diff-btn:hover {
+    border-color: var(--ice-blue);
+    transform: translateY(-1px);
+}
+
+.diff-btn.active {
+    border-color: #ffd166;
+    background: linear-gradient(135deg, rgba(255, 209, 102, 0.25), rgba(255, 107, 107, 0.2));
+    box-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+    color: #ffd166;
+}
+
+/* ------------------------------------------------------------------
+   PROFILE MINI XP BAR
+   ------------------------------------------------------------------ */
+.profile-xp-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    width: 100%;
+}
+
+.profile-xp-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #70d6ff, #06d6a0);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.profile-xp-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #a8dadc;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------
+   UPGRADES GLOW BUTTON & BADGE
+   ------------------------------------------------------------------ */
+.btn-upgrades-glow {
+    position: relative;
+    animation: pulseUpgrade 2s infinite ease-in-out;
+}
+
+@keyframes pulseUpgrade {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(255, 209, 102, 0.75);
+        transform: scale(1.02);
+    }
+}
+
+.upgrade-pts-badge {
+    background: #ff3366;
+    color: #ffffff;
+    font-size: 0.74rem;
+    font-weight: 900;
+    padding: 1px 7px;
+    border-radius: 12px;
+    margin-left: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* ------------------------------------------------------------------
+   QAHRAMONNI KUCHAYTIRISH MODALI (TOOL & UPGRADES MODAL)
+   ------------------------------------------------------------------ */
+.upgrades-top-strip {
+    display: flex;
+    justify-content: space-around;
+    background: rgba(8, 20, 38, 0.85);
+    border: 1.5px solid var(--card-border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+
+.upg-strip-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.upg-strip-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #a8dadc;
+    text-transform: uppercase;
+}
+
+.upg-strip-value {
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+.upgrades-list-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.upgrade-card {
+    background: rgba(14, 30, 56, 0.7);
+    border: 1.5px solid var(--card-border);
+    border-radius: 16px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.upgrade-card:hover {
+    border-color: rgba(112, 214, 255, 0.6);
+    background: rgba(18, 38, 70, 0.8);
+}
+
+.upgrade-card.maxed {
+    border-color: #06d6a0;
+    background: rgba(6, 214, 160, 0.08);
+}
+
+.upg-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.upg-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: var(--snow-white);
+}
+
+.upg-card-level-badge {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #ffd166;
+    background: rgba(255, 209, 102, 0.15);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 209, 102, 0.3);
+}
+
+.upg-card-desc {
+    font-size: 0.8rem;
+    color: #a8dadc;
+}
+
+.upg-stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 6px 12px;
+    border-radius: 10px;
+}
+
+.upg-stat-current {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: #70d6ff;
+}
+
+.upg-stat-arrow {
+    color: #ffd166;
+    font-weight: 900;
+}
+
+.upg-stat-next {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: #06d6a0;
+}
+
+.upg-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.upg-meter {
+    display: flex;
+    gap: 4px;
+}
+
+.upg-meter-pip {
+    width: 16px;
+    height: 8px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.upg-meter-pip.filled {
+    background: linear-gradient(135deg, #06d6a0, #70d6ff);
+    box-shadow: 0 0 6px rgba(6, 214, 160, 0.5);
+    border-color: #06d6a0;
+}
+
+.upg-actions-group {
+    display: flex;
+    gap: 6px;
+}
+
+.btn-upg-action {
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: none;
+    font-weight: 800;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.btn-upg-action.point {
+    background: linear-gradient(135deg, #ffd166, #ff9e00);
+    color: #081324;
+}
+
+.btn-upg-action.coins {
+    background: rgba(6, 214, 160, 0.2);
+    border: 1.5px solid #06d6a0;
+    color: #06d6a0;
+}
+
+.btn-upg-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-upg-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------
+   LEVEL UP TOAST NOTIFICATION
+   ------------------------------------------------------------------ */
+.level-up-toast {
+    position: fixed;
+    top: 22%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    z-index: 99999;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.level-up-toast.hidden {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.6);
+    pointer-events: none;
+}
+
+.level-up-toast-content {
+    background: linear-gradient(135deg, rgba(14, 30, 56, 0.96), rgba(6, 17, 32, 0.98));
+    border: 2px solid #ffd166;
+    border-radius: 24px;
+    padding: 20px 36px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(255, 209, 102, 0.6), 0 10px 30px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(12px);
+    animation: toastGlow 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes toastGlow {
+    from { box-shadow: 0 0 25px rgba(255, 209, 102, 0.4); }
+    to { box-shadow: 0 0 50px rgba(255, 209, 102, 0.8); }
+}
+
+.level-up-badge {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: #ffd166;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.level-up-toast h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+    color: #ffffff;
+    margin: 4px 0;
+    text-shadow: 0 0 16px rgba(112, 214, 255, 0.8);
+}
+
+.level-up-toast p {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #06d6a0;
+}
+
+/* ------------------------------------------------------------------
+   SHIELD BAR IN HUD
+   ------------------------------------------------------------------ */
+.shield-bar-container {
+    width: 100%;
+    height: 7px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 245, 212, 0.4);
+    box-shadow: 0 0 8px rgba(0, 245, 212, 0.25);
+}
+
+.shield-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f5d4, #70d6ff);
+    border-radius: 4px;
+    transition: width 0.25s ease;
+}
+
+

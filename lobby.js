@@ -273,6 +273,15 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal(settingsModal);
     });
 
+    // Kuchaytirish (Tool & Upgrades) modali
+    const btnOpenUpgrades = document.getElementById('btnOpenUpgrades');
+    if (btnOpenUpgrades) {
+        btnOpenUpgrades.addEventListener('click', () => {
+            if (window.shopAndQuests) window.shopAndQuests.renderUpgradesModal();
+            openModal(document.getElementById('upgradesModal'));
+        });
+    }
+
     // Do'kon (Shop) modali
     const btnOpenShop = document.getElementById('btnOpenShop');
     if (btnOpenShop) {
@@ -645,9 +654,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 10. TEZKOR JANG VA OFFLINE BOT REJIMI
     // -------------------------------------------------------------
     const btnQuickPlay = document.getElementById('btnQuickPlay');
+    const btnMobileQuickPlay = document.getElementById('btnMobileQuickPlay');
     const btnPlayBots = document.getElementById('btnPlayBots');
 
-    btnQuickPlay.addEventListener('click', () => {
+    const startQuickMatch = () => {
         sound.init();
         sound.resume();
         syncAudioButtonsUI();
@@ -661,7 +671,16 @@ document.addEventListener('DOMContentLoaded', () => {
             isMultiplayer: false,
             useBots: true
         });
-    });
+    };
+
+    btnQuickPlay.addEventListener('click', startQuickMatch);
+    if (btnMobileQuickPlay) {
+        btnMobileQuickPlay.addEventListener('click', startQuickMatch);
+        btnMobileQuickPlay.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startQuickMatch();
+        }, { passive: false });
+    }
 
     btnPlayBots.addEventListener('click', () => {
         sound.init();
@@ -701,6 +720,8 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal(pauseModal);
         game.isRunning = false;
         if (game.timerInterval) clearInterval(game.timerInterval);
+        const mobileLayer = document.getElementById('mobileControlsLayer');
+        if (mobileLayer) mobileLayer.classList.remove('active');
         mainLobbyScreen.classList.remove('hidden');
     });
 
@@ -721,8 +742,32 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal(gameOverModal);
         game.isRunning = false;
         if (game.timerInterval) clearInterval(game.timerInterval);
+        const mobileLayer = document.getElementById('mobileControlsLayer');
+        if (mobileLayer) mobileLayer.classList.remove('active');
         mainLobbyScreen.classList.remove('hidden');
     });
+
+    // To'liq ekran (Fullscreen) tugmasi
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                }
+                btnFullscreen.textContent = '🗗';
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                btnFullscreen.textContent = '⛶';
+            }
+        });
+    }
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
