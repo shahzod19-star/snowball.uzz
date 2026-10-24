@@ -549,7 +549,30 @@ class SnowClashGame {
                 this.matchTimeLeft--;
                 this.updateTimerUI();
                 if (this.matchTimeLeft <= 0) {
-                    this.endGame();
+                    if (this.gameMode === '2v2' || this.gameMode === '4v4') {
+                        if (this.blueScore > this.redScore) {
+                            this.endGame({ team: 'blue', isTeam: true });
+                        } else if (this.redScore > this.blueScore) {
+                            this.endGame({ team: 'red', isTeam: true });
+                        } else {
+                            this.endGame({ isDraw: true, isTeam: true });
+                        }
+                    } else if (this.gameMode === '1v1') {
+                        let alive = [];
+                        for (let [id, p] of this.players) if (!p.isDead) alive.push(p);
+                        if (alive.length === 1) this.endGame(alive[0]);
+                        else this.endGame({ isDraw: true });
+                    } else {
+                        let best = null;
+                        let maxHp = -1;
+                        for (let [id, p] of this.players) {
+                            if (!p.isDead && p.hp > maxHp) {
+                                maxHp = p.hp;
+                                best = p;
+                            }
+                        }
+                        this.endGame(best || { isDraw: true });
+                    }
                 }
             }
         }, 1000);
@@ -837,6 +860,7 @@ class SnowClashGame {
         this.updateSnowballs();
         this.updateParticles();
         this.updateGroundCoins();
+        this.checkWinCondition();
 
         if (this.isMultiplayer && this.ws && this.ws.readyState === WebSocket.OPEN && Math.random() < 0.45) {
             this.ws.send(JSON.stringify({
@@ -1182,6 +1206,8 @@ class SnowClashGame {
     }
 
     checkWinCondition() {
+        if (this.isGameOver) return;
+
         if (this.gameMode === '1v1') {
             let alivePlayers = [];
             for (let [id, p] of this.players) {
@@ -1191,6 +1217,7 @@ class SnowClashGame {
                 this.endGame(alivePlayers[0]);
             }
         } else if (this.gameMode === '2v2' || this.gameMode === '4v4') {
+            const targetKills = this.gameMode === '4v4' ? 4 : 2;
             let blueAlive = 0;
             let redAlive = 0;
             for (let [id, p] of this.players) {
@@ -1199,9 +1226,22 @@ class SnowClashGame {
                     else if (p.team === 'red') redAlive++;
                 }
             }
-            if (blueAlive === 0 || redAlive === 0) {
-                const winningTeam = blueAlive > 0 ? 'Ko\'k Jamoa' : 'Qizil Jamoa';
-                this.endGame({ team: winningTeam, isTeam: true });
+
+            // G'alaba shartlari:
+            // 1. Bir jamoaning barcha o'yinchilari yiqitildi
+            // 2. Yoki jamoa 4 ta (2v2 da 2 ta) yiqitish hisobiga erishdi
+            if (this.blueScore >= targetKills || (redAlive === 0 && blueAlive > 0)) {
+                this.endGame({ team: 'blue', isTeam: true });
+            } else if (this.redScore >= targetKills || (blueAlive === 0 && redAlive > 0)) {
+                this.endGame({ team: 'red', isTeam: true });
+            } else if (blueAlive === 0 && redAlive === 0) {
+                if (this.blueScore > this.redScore) {
+                    this.endGame({ team: 'blue', isTeam: true });
+                } else if (this.redScore > this.blueScore) {
+                    this.endGame({ team: 'red', isTeam: true });
+                } else {
+                    this.endGame({ isDraw: true, isTeam: true });
+                }
             }
         } else {
             let aliveCount = 0;
@@ -1223,6 +1263,11 @@ class SnowClashGame {
         this.isGameOver = true;
         this.isRunning = false;
 
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+
         const mobileLayer = document.getElementById('mobileControlsLayer');
         if (mobileLayer) mobileLayer.classList.remove('active');
         if (this.joystick) {
@@ -1238,29 +1283,76 @@ class SnowClashGame {
         const desc = document.getElementById('gameOverDesc');
 
         let isVictory = false;
+        let isDraw = false;
 
-        if (winner) {
-            if (winner.isTeam) {
-                isVictory = (this.localPlayer.team === 'blue' && winner.team === 'Ko\'k Jamoa') ||
-                            (this.localPlayer.team === 'red' && winner.team === 'Qizil Jamoa');
-                title.textContent = isVictory ? "🏆 G'ALABA!" : "⛄ MAG'LUBIYAT";
-                desc.textContent = `${winner.team} zafar quchdi!`;
+        if (winner && winner.isDraw) {
+            isDraw = true;
+            title.textContent = "🤝 DURRANG!";
+            desc.textContent = "Ikkala jamoa teng natija ko'rsatdi!";
+            title.className = "winner-banner draw";
+        } else if (winner && winner.isTeam) {
+            const winTeam = (winner.team === 'Ko\'k Jamoa' || winner.team === 'blue') ? 'blue' : 'red';
+            const teamName = winTeam === 'blue' ? "Ko'k Jamoa" : "Qizil Jamoa";
+            isVictory = (this.localPlayer.team === winTeam);
+
+            if (isVictory) {
+                title.textContent = "🏆 G'ALABA! SIZ YUTDINGIZ!";
+                desc.textContent = `Tabriklaymiz! Sizning jamoangiz (${teamName}) zafar quchdi!`;
+                title.className = "winner-banner victory";
             } else {
-                isVictory = (winner.id === this.localPlayer.id);
-                title.textContent = isVictory ? "🏆 G'ALABA!" : "⛄ MAG'LUBIYAT";
-                desc.textContent = isVictory ? "Tabriklaymiz! Siz g'olib bo'ldingiz!" : `${winner.name} qor jangida g'olib bo'ldi!`;
+                title.textContent = "⛄ MAG'LUBIYAT";
+                desc.textContent = `Raqib jamoa (${teamName}) g'alaba qozondi.`;
+                title.className = "winner-banner defeat";
+            }
+        } else if (winner) {
+            isVictory = (winner.id === this.localPlayer.id);
+            if (isVictory) {
+                title.textContent = "🏆 G'ALABA! SIZ YUTDINGIZ!";
+                desc.textContent = "Tabriklaymiz! Siz qor jangida g'olib bo'ldingiz!";
+                title.className = "winner-banner victory";
+            } else {
+                title.textContent = "⛄ MAG'LUBIYAT";
+                desc.textContent = `${winner.name || 'Raqib'} jangda g'olib bo'ldi!`;
+                title.className = "winner-banner defeat";
+            }
+        } else {
+            // Agar g'olib ko'rsatilmagan bo'lsa (masalan vaqt tugaganda hisob bo'yicha)
+            if (this.gameMode === '2v2' || this.gameMode === '4v4') {
+                const myScore = (this.localPlayer.team === 'blue') ? this.blueScore : this.redScore;
+                const oppScore = (this.localPlayer.team === 'blue') ? this.redScore : this.blueScore;
+                if (myScore > oppScore) {
+                    isVictory = true;
+                    title.textContent = "🏆 G'ALABA! SIZ YUTDINGIZ!";
+                    desc.textContent = "Sizning jamoangiz ko'proq ochko to'plab zafar quchdi!";
+                    title.className = "winner-banner victory";
+                } else if (myScore < oppScore) {
+                    title.textContent = "⛄ MAG'LUBIYAT";
+                    desc.textContent = "Raqib jamoa ko'proq ochko to'pladi.";
+                    title.className = "winner-banner defeat";
+                } else {
+                    isDraw = true;
+                    title.textContent = "🤝 DURRANG!";
+                    desc.textContent = "O'yin teng hisob bilan yakunlandi!";
+                    title.className = "winner-banner draw";
+                }
+            } else {
+                isVictory = !this.localPlayer.isDead;
+                title.textContent = isVictory ? "🏆 G'ALABA! SIZ YUTDINGIZ!" : "⛄ MAG'LUBIYAT";
+                desc.textContent = isVictory ? "Siz tirik qoldingiz va g'olib bo'ldingiz!" : "Siz muzlab qoldingiz.";
+                title.className = isVictory ? "winner-banner victory" : "winner-banner defeat";
             }
         }
 
-        // G'olibga katta tanga mukofoti beriladi (+50 tanga)
+        // Mukofot berish
         if (isVictory) {
             this.addCoins(50);
-            title.className = "winner-banner victory";
             if (window.soundSystem) window.soundSystem.playVictory();
             if (window.shopAndQuests) window.shopAndQuests.onMatchWon();
+        } else if (isDraw) {
+            this.addCoins(25);
+            if (window.soundSystem) window.soundSystem.playVictory();
         } else {
-            this.addCoins(10); // Mag'lub bo'lsa ham tasalli mukofoti
-            title.className = "winner-banner defeat";
+            this.addCoins(10);
             if (window.soundSystem) window.soundSystem.playDefeat();
         }
 

@@ -378,6 +378,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (msg.type === 'match_started') {
             closeModal(roomWaitingModal);
             mainLobbyScreen.classList.add('hidden');
+            const myPlayerObj = (msg.players || []).find(p => p.id === game.playerId);
+            const myTeam = myPlayerObj ? myPlayerObj.team : (game.localPlayer.team || 'blue');
             game.startMatch({
                 name: playerName,
                 color: playerColor,
@@ -385,6 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 mode: msg.room.mode,
                 map: msg.room.map,
                 roomCode: msg.room.roomId,
+                team: myTeam,
                 isMultiplayer: true,
                 useBots: false
             });
@@ -401,10 +404,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         existing.isCrafting = p.isCrafting;
                         existing.isMoving = p.isMoving;
                         existing.isDead = p.isDead;
+                        if (p.team) existing.team = p.team;
                     } else {
                         game.players.set(p.id, p);
                     }
                 }
+            }
+            if (game.isRunning && !game.isGameOver) {
+                game.checkWinCondition();
             }
         } else if (msg.type === 'remote_throw') {
             if (msg.snowball.ownerId !== game.playerId) {
@@ -414,6 +421,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (msg.type === 'remote_hit') {
             if (sound) sound.playHit();
             game.createSnowSplash(msg.x, msg.y, '#ffffff', 14);
+        } else if (msg.type === 'remote_eliminated') {
+            if (msg.killerTeam === 'blue') game.blueScore++;
+            else if (msg.killerTeam === 'red') game.redScore++;
+            game.updateScoreUI();
+            if (game.players.has(msg.victimId)) {
+                game.players.get(msg.victimId).isDead = true;
+            }
+            game.showKillFeed(`⛄ ${msg.victimName} muzlab qoldi! (${msg.killerName})`, true);
+            if (game.isRunning && !game.isGameOver) {
+                game.checkWinCondition();
+            }
         } else if (msg.type === 'error') {
             alert(msg.message || "Xatolik yuz berdi");
         }

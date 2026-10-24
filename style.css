@@ -906,6 +906,7 @@ body, html {
 
 .winner-banner.victory { color: var(--festive-gold); }
 .winner-banner.defeat { color: var(--festive-red); }
+.winner-banner.draw { color: var(--ice-blue); }
 
 /* TANGA BADJIKLARI (Coins) */
 .coin-badge {
