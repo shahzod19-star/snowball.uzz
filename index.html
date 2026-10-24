@@ -86,18 +86,39 @@
                     <span class="craft-hint" id="hudCraftHint">[SPACE] Qor yasash</span>
                 </div>
 
-                <!-- Qurolli Jang Rejimi uchun O'q-Dori Paneli -->
-                <div class="snowballs-inventory" id="hudGunAmmoInventory" style="display: none;">
-                    <span style="font-size: 0.88rem; font-weight: 800; color: #ffd166;">🔫 O'Q:</span>
-                    <span id="hudAmmoText" style="font-weight: 900; font-size: 1.15rem; color: #ffffff; letter-spacing: 1.5px; font-family: 'Fredoka One', monospace;">30 / 120</span>
-                    <span class="craft-hint">[R] O'qlash (Reload)</span>
+                <!-- Qurolli Jang Rejimi uchun O'q-Dori va Qurollar Paneli -->
+                <div class="snowballs-inventory" id="hudGunAmmoInventory" style="display: none; flex-direction: column; gap: 5px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                        <span style="font-size: 0.88rem; font-weight: 800; color: #ffd166;" id="hudWeaponLabel">💥 AK-47:</span>
+                        <span id="hudAmmoText" style="font-weight: 900; font-size: 1.15rem; color: #ffffff; letter-spacing: 1.5px; font-family: 'Fredoka One', monospace;">30 / 120</span>
+                        <span class="craft-hint" id="hudReloadHint">[R] O'qlash</span>
+                    </div>
+                    <!-- Qurol almashtirish (1 - Pichoq, 2 - Pistolet, 3 - Avtomat) -->
+                    <div class="weapon-switcher-bar interactive" id="weaponSwitcherBar">
+                        <button type="button" class="w-btn" id="wBtnKnife" data-weapon="knife" title="[1] Pichoq (Yaqin jang)">
+                            <span class="w-key">1</span>
+                            <span class="w-icon">🔪</span>
+                            <span class="w-name">Pichoq</span>
+                        </button>
+                        <button type="button" class="w-btn" id="wBtnPistol" data-weapon="pistol" title="[2] Pistolet (To'pponcha)">
+                            <span class="w-key">2</span>
+                            <span class="w-icon">🔫</span>
+                            <span class="w-name">Pistolet</span>
+                        </button>
+                        <button type="button" class="w-btn active" id="wBtnRifle" data-weapon="rifle" title="[3] AK-47 (Avtomat)">
+                            <span class="w-key">3</span>
+                            <span class="w-icon">💥</span>
+                            <span class="w-name">AK-47</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div class="controls-guide-bar">
                 <span><span class="key-badge">W,A,S,D</span> Harakat</span>
                 <span><span class="key-badge">V / F</span> 1-Litso / 2-Litso</span>
-                <span><span class="key-badge">Sichqoncha</span> Otish / Nishon</span>
+                <span id="guideWeaponKeys" style="display: none;"><span class="key-badge">1, 2, 3</span> Pichoq/Pistolet/Avtomat</span>
+                <span><span class="key-badge">Sichqoncha / Enter</span> Otish</span>
                 <span id="guideCraftOrReload"><span class="key-badge">Space / R</span> Qor / O'qlash</span>
                 <span><span class="key-badge">P / Esc</span> Pauza</span>
             </div>
@@ -132,6 +153,12 @@
                 <div class="m-craft-progress-ring" id="mobileCraftRing"></div>
                 <span class="m-btn-icon">❄️</span>
                 <span class="m-btn-text">QOR</span>
+            </button>
+
+            <!-- Qurol almashtirish (Faqat qurolli jangda) -->
+            <button type="button" class="m-action-btn m-btn-gun-switch" id="btnMobileWeaponSwitch" style="display: none;" title="Qurol almashtirish">
+                <span class="m-btn-icon" id="mobileWeaponIcon">💥</span>
+                <span class="m-btn-text" id="mobileWeaponText">QUROL</span>
             </button>
 
             <!-- Qor otish (Shoot) -->
@@ -284,25 +311,18 @@
                 </div>
                 <div class="stage-pedestal"></div>
 
-                <!-- Minecraft Qahramonlari Tanlovi (Steve, Zombie, Skelet, Enderman, Creeper) -->
+                <!-- Minecraft Qahramonlari Tanlovi (Steve, Barbie, Soldat, Zombie, Skelet, Enderman, Creeper) -->
                 <div class="panel-section-title" style="margin-top: 6px;">
-                    <span>⛏️</span> Minecraft Personaji
+                    <span>⛏️</span> Personajni Tanlash
                 </div>
                 <div class="mc-character-selector" id="mcCharacterSelector">
-                    <button type="button" class="mc-char-card active" data-char="steve" title="Steve - Qahramon">⛏️ Steve</button>
+                    <button type="button" class="mc-char-card active" data-char="steve" title="Steve - Klassik qahramon">⛏️ Steve</button>
+                    <button type="button" class="mc-char-card" data-char="barbie" title="Barbie - Qizlar uchun go'zal va chaqqon">🎀 Barbie</button>
+                    <button type="button" class="mc-char-card" data-char="soldier" title="Harbiy Soldat - Maxsus harbiy jangchi">🎖️ Soldat</button>
                     <button type="button" class="mc-char-card" data-char="zombie" title="Zombie - Yashil xatar">🧟 Zombi</button>
                     <button type="button" class="mc-char-card" data-char="skeleton" title="Skeleton - Mergan skelet">💀 Skelet</button>
                     <button type="button" class="mc-char-card" data-char="enderman" title="Enderman - Sirli mutant">🌌 Enderman</button>
                     <button type="button" class="mc-char-card" data-char="creeper" title="Creeper - Yashil maxluq">💥 Creeper</button>
-                </div>
-
-                <!-- Libos ranglari -->
-                <div class="color-picker-row">
-                    <div class="color-circle active" style="background: #e63946;" data-color="#e63946" title="Santa Qizil"></div>
-                    <div class="color-circle" style="background: #4cc9f0;" data-color="#4cc9f0" title="Muz Ko'k"></div>
-                    <div class="color-circle" style="background: #06d6a0;" data-color="#06d6a0" title="Yashil Archa"></div>
-                    <div class="color-circle" style="background: #ffd166;" data-color="#ffd166" title="Oltin Quyosh"></div>
-                    <div class="color-circle" style="background: #b5179e;" data-color="#b5179e" title="Bayramona Binafsha"></div>
                 </div>
 
                 <!-- Mobil uchun bevosita qahramon ostidagi Katta Start tugmasi -->
@@ -463,6 +483,8 @@
                 <label class="input-label">Qahramon Ko'rinishi (Personaj):</label>
                 <select id="settingCharSelect" class="custom-input" style="cursor: pointer;">
                     <option value="steve">⛏️ Steve (Klassik Qahramon)</option>
+                    <option value="barbie">🎀 Barbie (Qizlar uchun)</option>
+                    <option value="soldier">🎖️ Soldat (Harbiy Jangchi)</option>
                     <option value="zombie">🧟 Zombie (Yashil Mutant)</option>
                     <option value="skeleton">💀 Skelet (Mergan)</option>
                     <option value="enderman">🌌 Enderman (Ender)</option>

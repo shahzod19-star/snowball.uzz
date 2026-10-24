@@ -18,17 +18,21 @@ class ShopAndQuestsManager {
         }
 
         // Sotib olingan buyumlar
-        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["steve", "santa"]');
+        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["steve", "barbie", "soldier", "santa"]');
         if (!this.ownedSkins.includes('steve')) this.ownedSkins.push('steve');
+        if (!this.ownedSkins.includes('barbie')) this.ownedSkins.push('barbie');
+        if (!this.ownedSkins.includes('soldier')) this.ownedSkins.push('soldier');
         this.ownedBalls = JSON.parse(localStorage.getItem('snow_owned_balls') || '["classic", "pixel_ak47"]');
         if (!this.ownedBalls.includes('pixel_ak47')) this.ownedBalls.push('pixel_ak47');
 
         this.equippedSkin = localStorage.getItem('snow_equipped_skin') || 'steve';
         this.equippedBall = localStorage.getItem('snow_equipped_ball') || 'classic';
 
-        // Minecraft va Bayramona Skinlar
+        // Minecraft va Qahramonlar Skinlar
         this.skinsCatalog = [
             { id: 'steve', name: '⛏️ Steve (Klassik)', price: 0, desc: 'Minecraft afsonaviy bosh qahramoni' },
+            { id: 'barbie', name: '🎀 Barbie (Qizlar uchun)', price: 0, desc: 'Pushti libosli, sariq sochli go\'zal va chaqqon qahramon' },
+            { id: 'soldier', name: '🎖️ Harbiy Soldat', price: 0, desc: 'Taktik kamuflaj va kaskali maxsus kuchlar jangchisi' },
             { id: 'zombie', name: '🧟 Zombie (Yashil)', price: 120, desc: 'Yashil xatarli mutant jangchi' },
             { id: 'skeleton', name: '💀 Skelet Mergan', price: 180, desc: 'Oq suyakli chaqqon nishonchi' },
             { id: 'enderman', name: '🌌 Enderman (Ender)', price: 260, desc: 'Binafsha ko\'zli sirli qora jonzot' },

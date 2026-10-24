@@ -296,6 +296,20 @@ class SnowClashGame {
                 }
             }
 
+            // 1, 2, 3 - Qurol almashtirish (Faqat qurolli jangda: Pichoq, Pistolet, Avtomat)
+            if (this.battleType === 'gun' && !this.isPaused && this.isRunning && !this.localPlayer.isDead) {
+                if (e.key === '1' || e.code === 'Digit1' || e.code === 'Numpad1') {
+                    e.preventDefault();
+                    this.switchWeapon('knife');
+                } else if (e.key === '2' || e.code === 'Digit2' || e.code === 'Numpad2') {
+                    e.preventDefault();
+                    this.switchWeapon('pistol');
+                } else if (e.key === '3' || e.code === 'Digit3' || e.code === 'Numpad3') {
+                    e.preventDefault();
+                    this.switchWeapon('rifle');
+                }
+            }
+
             // V / F / C - Kamera Rejimini almashtirish (1-Litso / 2-Litso)
             if ((e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'c') && !this.isPaused && this.isRunning) {
                 e.preventDefault();
@@ -321,6 +335,32 @@ class SnowClashGame {
             if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
                 this.keys['enter'] = false;
                 this.keys['numpadenter'] = false;
+            }
+        });
+
+        // Sichqoncha g'ildiragi bilan qurol almashtirish (Mouse Wheel)
+        window.addEventListener('wheel', (e) => {
+            if (this.battleType === 'gun' && this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
+                const order = ['knife', 'pistol', 'rifle'];
+                const curIdx = order.indexOf(this.localPlayer.currentWeapon || 'rifle');
+                let nextIdx = curIdx;
+                if (e.deltaY > 0) {
+                    nextIdx = (curIdx + 1) % order.length;
+                } else if (e.deltaY < 0) {
+                    nextIdx = (curIdx - 1 + order.length) % order.length;
+                }
+                this.switchWeapon(order[nextIdx]);
+            }
+        }, { passive: true });
+
+        // HUD Qurol Switcher tugmalari ([1] Pichoq, [2] Pistolet, [3] AK-47)
+        ['knife', 'pistol', 'rifle'].forEach(w => {
+            const b = document.getElementById(w === 'knife' ? 'wBtnKnife' : (w === 'pistol' ? 'wBtnPistol' : 'wBtnRifle'));
+            if (b) {
+                b.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.switchWeapon(w);
+                });
             }
         });
 
@@ -535,6 +575,24 @@ class SnowClashGame {
             btnShoot.addEventListener('click', doShoot);
         }
 
+        // 4.5. MOBIL QUROL ALMASHTIRISH (Pichoq, Pistolet, AK-47)
+        const btnMobWeapon = document.getElementById('btnMobileWeaponSwitch');
+        if (btnMobWeapon) {
+            const doSwitchWeapon = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.isRunning && !this.isPaused && !this.localPlayer.isDead && this.battleType === 'gun') {
+                    const order = ['knife', 'pistol', 'rifle'];
+                    const curIdx = order.indexOf(this.localPlayer.currentWeapon || 'rifle');
+                    const nextIdx = (curIdx + 1) % order.length;
+                    this.switchWeapon(order[nextIdx]);
+                }
+            };
+            btnMobWeapon.addEventListener('pointerdown', doSwitchWeapon);
+            btnMobWeapon.addEventListener('touchstart', doSwitchWeapon, { passive: false });
+            btnMobWeapon.addEventListener('click', doSwitchWeapon);
+        }
+
         // 5. CANVAS DIRECT TAP-TO-SHOOT (Maydonga to'g'ridan-to'g'ri barmog'i bilan tegib otish)
         const handleCanvasTouch = (clientX, clientY) => {
             if (!this.isRunning || this.isPaused || this.localPlayer.isDead) return;
@@ -557,14 +615,21 @@ class SnowClashGame {
         }, { passive: false });
     }
 
-        reloadGun() {
+    reloadGun() {
         const p = this.localPlayer;
-        if (!p || p.isDead || p.isReloading || p.snowballs >= p.maxSnowballs || p.reserveAmmo <= 0) return;
+        if (!p || p.isDead || p.isReloading) return;
+        const curW = p.currentWeapon || 'rifle';
+        if (curW === 'knife') return; // Pichoq o'qlanmaydi
+
+        const wData = (p.weapons && p.weapons[curW]);
+        if (!wData || wData.ammo >= wData.maxAmmo || wData.reserve <= 0) return;
+
         p.isReloading = true;
         p.reloadProgress = 0;
-        p.reloadDuration = 36;
-        this.showKillFeed(`🔄 ${p.name} qurolni qayta o'qlamoqda...`, false);
-        if (window.soundSystem) window.soundSystem.playSnowStep();
+        p.reloadDuration = 32;
+        this.showKillFeed(`🔄 ${curW === 'pistol' ? 'Pistolet' : 'AK-47'} qayta o'qlanmoqda...`, false);
+        if (window.soundSystem) window.soundSystem.playWeaponSwitch();
+        this.updateSnowballSlotsUI();
     }
 
     addCoins(amount) {
@@ -634,14 +699,21 @@ class SnowClashGame {
         this.localPlayer.speed = playerStats.speed;
         this.localPlayer.sprintSpeed = playerStats.sprintSpeed;
         if (this.battleType === 'gun') {
+            this.localPlayer.currentWeapon = 'rifle';
+            this.localPlayer.weapons = {
+                knife: { ammo: Infinity, maxAmmo: Infinity, reserve: Infinity },
+                pistol: { ammo: 12, maxAmmo: 12, reserve: 60 },
+                rifle: { ammo: 30, maxAmmo: 30, reserve: 120 }
+            };
             this.localPlayer.snowballs = 30; // 30 talik magazin
             this.localPlayer.maxSnowballs = 30;
             this.localPlayer.reserveAmmo = 120;
             this.localPlayer.maxReserveAmmo = 120;
             this.localPlayer.isReloading = false;
             this.localPlayer.reloadProgress = 0;
-            this.localPlayer.reloadDuration = 36;
+            this.localPlayer.reloadDuration = 32;
         } else {
+            this.localPlayer.currentWeapon = 'snowball';
             this.localPlayer.maxSnowballs = playerStats.maxSnowballs;
             this.localPlayer.snowballs = Math.min(4, playerStats.maxSnowballs);
             this.localPlayer.reserveAmmo = 0;
@@ -696,20 +768,29 @@ class SnowClashGame {
         const hudSnowSlots = document.getElementById('hudSnowballInventory') || document.getElementById('hudSnowballSlots');
         const hudCraftGuide = document.getElementById('guideCraftOrReload');
         const mobileCraftBtn = document.getElementById('btnMobileCraft');
+        const weaponBar = document.getElementById('weaponSwitcherBar');
+        const guideWeaponKeys = document.getElementById('guideWeaponKeys');
+        const mobileSwitchBtn = document.getElementById('btnMobileWeaponSwitch');
 
         if (this.battleType === 'gun') {
-            if (hudGunAmmo) {
-                hudGunAmmo.style.display = 'flex';
-                hudGunAmmo.innerHTML = `🔫 <span id="gunMagCount">${this.localPlayer.snowballs}</span> / <span id="gunReserveCount" style="color:#a0aec0;">${this.localPlayer.reserveAmmo}</span>`;
-            }
+            if (weaponBar) weaponBar.style.display = 'flex';
+            if (guideWeaponKeys) guideWeaponKeys.style.display = 'flex';
+            if (mobileSwitchBtn) mobileSwitchBtn.style.display = 'flex';
+            if (hudGunAmmo) hudGunAmmo.style.display = 'flex';
             if (hudSnowSlots) hudSnowSlots.style.display = 'none';
             if (hudCraftGuide) hudCraftGuide.innerHTML = `<span class="key-badge">R</span> O'QLASH`;
             if (mobileCraftBtn) mobileCraftBtn.innerHTML = `🔄<span class="m-btn-label">O'QLASH</span>`;
         } else {
+            if (weaponBar) weaponBar.style.display = 'none';
+            if (guideWeaponKeys) guideWeaponKeys.style.display = 'none';
+            if (mobileSwitchBtn) mobileSwitchBtn.style.display = 'none';
             if (hudGunAmmo) hudGunAmmo.style.display = 'none';
             if (hudSnowSlots) hudSnowSlots.style.display = 'flex';
             if (hudCraftGuide) hudCraftGuide.innerHTML = `<span class="key-badge">PROBEL</span> QOR YASASH`;
-            if (mobileCraftBtn) mobileCraftBtn.innerHTML = `❄️<span class="m-btn-label">YASASH</span>`;
+            if (mobileCraftBtn) {
+                mobileCraftBtn.style.display = 'flex';
+                mobileCraftBtn.innerHTML = `❄️<span class="m-btn-label">YASASH</span>`;
+            }
         }
 
         const mobileLayer = document.getElementById('mobileControlsLayer');
@@ -944,19 +1025,104 @@ class SnowClashGame {
         if (this.localPlayer.isDead) return;
         if (this.localPlayer.throwCooldown > 0) return;
 
-        // 🔫 QUROLLI JANG REJIMI (Gun Warfare Firing)
+        // 🔫 QUROLLI JANG REJIMI (Real Weapons: Knife, Pistol, Rifle)
         if (this.battleType === 'gun') {
-            if (this.localPlayer.snowballs <= 0) {
-                if (this.localPlayer.reserveAmmo > 0 && !this.localPlayer.isReloading) {
-                    this.reloadGun();
-                } else if (this.localPlayer.reserveAmmo <= 0) {
-                    this.showKillFeed("❌ O'q tugadi! Zaxirada o'q yo'q!", false);
+            const curW = this.localPlayer.currentWeapon || 'rifle';
+            if (!this.localPlayer.weapons) {
+                this.localPlayer.weapons = {
+                    knife: { ammo: Infinity, maxAmmo: Infinity, reserve: Infinity },
+                    pistol: { ammo: 12, maxAmmo: 12, reserve: 60 },
+                    rifle: { ammo: 30, maxAmmo: 30, reserve: 120 }
+                };
+            }
+            const wData = this.localPlayer.weapons[curW];
+
+            // 1. PICHOQ (Combat Knife - Tezkor yaqin jang)
+            if (curW === 'knife') {
+                this.localPlayer.throwCooldown = 14; // Tez pichoq urish
+                this.localPlayer.throwAnim = 10;
+                if (window.soundSystem) window.soundSystem.playKnifeSlash();
+
+                let angle = targetAngle;
+                if (this.cameraMode === 'first_person') {
+                    angle = this.localPlayer.angle;
+                } else if (angle === null) {
+                    const nearest = this.findNearestEnemy();
+                    if (nearest && Math.hypot(nearest.x - this.localPlayer.x, nearest.y - this.localPlayer.y) < 130) {
+                        angle = Math.atan2(nearest.y - this.localPlayer.y, nearest.x - this.localPlayer.x);
+                    } else {
+                        angle = this.localPlayer.angle;
+                    }
+                }
+
+                // Yaqindagi dushmanga pichoq bilan zarba berish (Melee Hit Detection)
+                let hitEnemy = null;
+                for (let [id, p] of this.players) {
+                    if (p.id === this.localPlayer.id || p.isDead) continue;
+                    if ((this.gameMode === '2v2' || this.gameMode === '4v4') && p.team === this.localPlayer.team) continue;
+                    const d = Math.hypot(p.x - this.localPlayer.x, p.y - this.localPlayer.y);
+                    if (d < 82) {
+                        const toAngle = Math.atan2(p.y - this.localPlayer.y, p.x - this.localPlayer.x);
+                        let diff = Math.abs(angle - toAngle);
+                        while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
+                        if (diff < 1.2) {
+                            hitEnemy = p;
+                            break;
+                        }
+                    }
+                }
+
+                if (hitEnemy) {
+                    const knifeDmg = 58;
+                    hitEnemy.hp = Math.max(0, hitEnemy.hp - knifeDmg);
+                    this.createHitSparks(hitEnemy.x, hitEnemy.y, '#e63946', 16);
+                    this.showDamagePopup(hitEnemy.x, hitEnemy.y, knifeDmg, '#ff0055');
+                    if (window.soundSystem) window.soundSystem.playHit();
+                    if (hitEnemy.hp <= 0 && !hitEnemy.isDead) {
+                        hitEnemy.isDead = true;
+                        this.onPlayerEliminated(hitEnemy, {
+                            ownerId: this.localPlayer.id,
+                            ownerName: this.localPlayer.name,
+                            ownerTeam: this.localPlayer.team
+                        });
+                    }
                 }
                 return;
             }
 
-            this.localPlayer.snowballs--;
-            this.localPlayer.throwCooldown = 7; // Avtomat tezligi
+            // 2. O'QLI QUROLLAR (Pistolet va Avtomat)
+            if (wData.ammo <= 0) {
+                if (wData.reserve > 0 && !this.localPlayer.isReloading) {
+                    this.reloadGun();
+                } else if (wData.reserve <= 0) {
+                    this.showKillFeed(`❌ ${curW === 'pistol' ? 'Pistolet' : 'AK-47'} o'qi tugadi!`, false);
+                }
+                return;
+            }
+
+            wData.ammo--;
+            this.localPlayer.snowballs = wData.ammo;
+
+            let cd = 7;
+            let dmg = 24;
+            let maxDist = 950;
+            let bulletSpeed = 34;
+
+            if (curW === 'pistol') {
+                cd = 13;
+                dmg = 34;
+                maxDist = 780;
+                bulletSpeed = 30;
+                if (window.soundSystem) window.soundSystem.playPistolShot();
+            } else {
+                cd = 7;
+                dmg = 24;
+                maxDist = 980;
+                bulletSpeed = 35;
+                if (window.soundSystem) window.soundSystem.playRifleShot();
+            }
+
+            this.localPlayer.throwCooldown = cd;
             this.localPlayer.throwAnim = 8;
             this.updateSnowballSlotsUI();
 
@@ -980,24 +1146,25 @@ class SnowClashGame {
                 }
             }
 
-            if (window.soundSystem) window.soundSystem.playThrow();
-
-            const speed = 32;
-            const dmg = this.localPlayer.snowballDamage || 28;
+            // Ozgina haqiqiy otishma sochilishi (bullet spread)
+            const spread = curW === 'pistol' ? (Math.random() - 0.5) * 0.04 : (Math.random() - 0.5) * 0.07;
+            angle += spread;
 
             this.snowballs.push({
                 id: 'bullet_' + Math.random().toString(36).substr(2, 9),
                 ownerId: this.localPlayer.id,
                 ownerTeam: this.localPlayer.team,
+                ownerName: this.localPlayer.name,
+                weaponType: curW,
                 x: this.localPlayer.x + Math.cos(angle) * (this.localPlayer.radius + 14),
                 y: this.localPlayer.y + Math.sin(angle) * (this.localPlayer.radius + 14),
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                radius: 4.5,
+                vx: Math.cos(angle) * bulletSpeed,
+                vy: Math.sin(angle) * bulletSpeed,
+                radius: curW === 'pistol' ? 4.0 : 4.8,
                 damage: dmg,
                 type: 'bullet',
                 isBullet: true,
-                maxDist: 850,
+                maxDist: maxDist,
                 travelled: 0
             });
             return;
@@ -1235,17 +1402,34 @@ class SnowClashGame {
         if (this.gunRecoil > 0) this.gunRecoil = Math.max(0, this.gunRecoil - 0.08);
         if (this.gunMuzzleFlash > 0) this.gunMuzzleFlash--;
 
-                if (p.isReloading) {
+        if (p.isReloading) {
             p.reloadProgress++;
             if (p.reloadProgress >= p.reloadDuration) {
-                const needed = p.maxSnowballs - p.snowballs;
-                const take = Math.min(needed, p.reserveAmmo);
-                p.snowballs += take;
-                p.reserveAmmo -= take;
-                p.isReloading = false;
-                p.reloadProgress = 0;
-                this.updateSnowballSlotsUI();
-                this.showKillFeed(`⚡ Magazin to'ldi: ${p.snowballs} / ${p.reserveAmmo}`, false);
+                const curW = p.currentWeapon || 'rifle';
+                if (curW !== 'knife' && p.weapons && p.weapons[curW]) {
+                    const wData = p.weapons[curW];
+                    const needed = wData.maxAmmo - wData.ammo;
+                    const take = Math.min(needed, wData.reserve);
+                    wData.ammo += take;
+                    wData.reserve -= take;
+                    p.snowballs = wData.ammo;
+                    p.maxSnowballs = wData.maxAmmo;
+                    p.reserveAmmo = wData.reserve;
+                    p.isReloading = false;
+                    p.reloadProgress = 0;
+                    this.updateSnowballSlotsUI();
+                    const wName = curW === 'pistol' ? 'Pistolet' : 'AK-47';
+                    this.showKillFeed(`⚡ ${wName} to'ldi: ${wData.ammo} / ${wData.reserve}`, false);
+                } else {
+                    const needed = p.maxSnowballs - p.snowballs;
+                    const take = Math.min(needed, p.reserveAmmo);
+                    p.snowballs += take;
+                    p.reserveAmmo -= take;
+                    p.isReloading = false;
+                    p.reloadProgress = 0;
+                    this.updateSnowballSlotsUI();
+                    this.showKillFeed(`⚡ Magazin to'ldi: ${p.snowballs} / ${p.reserveAmmo}`, false);
+                }
             }
         }
 
@@ -1891,12 +2075,77 @@ class SnowClashGame {
         }
     }
 
+    switchWeapon(weaponId) {
+        if (this.battleType !== 'gun') return;
+        if (!['knife', 'pistol', 'rifle'].includes(weaponId)) return;
+        const p = this.localPlayer;
+        if (!p || p.isDead || p.currentWeapon === weaponId) return;
+
+        // Agar avvalgi qurol o'qlanayotgan bo'lsa, uni to'xtatish
+        p.isReloading = false;
+        p.reloadProgress = 0;
+
+        p.currentWeapon = weaponId;
+        if (!p.weapons) {
+            p.weapons = {
+                knife: { ammo: Infinity, maxAmmo: Infinity, reserve: Infinity },
+                pistol: { ammo: 12, maxAmmo: 12, reserve: 60 },
+                rifle: { ammo: 30, maxAmmo: 30, reserve: 120 }
+            };
+        }
+        const w = p.weapons[weaponId];
+        p.snowballs = w.ammo;
+        p.maxSnowballs = w.maxAmmo;
+        p.reserveAmmo = w.reserve;
+
+        if (window.soundSystem) window.soundSystem.playWeaponSwitch();
+        this.updateSnowballSlotsUI();
+
+        let wName = weaponId === 'knife' ? '🔪 Jangovar Pichoq' : (weaponId === 'pistol' ? '🔫 Taktik Pistolet' : '💥 AK-47 Avtomat');
+        this.showKillFeed(`Qurol tanlandi: ${wName}`, false);
+    }
+
     updateSnowballSlotsUI() {
         if (this.battleType === 'gun') {
-            const magSpan = document.getElementById('gunMagCount');
-            const resSpan = document.getElementById('gunReserveCount');
-            if (magSpan) magSpan.textContent = this.localPlayer.snowballs;
-            if (resSpan) resSpan.textContent = this.localPlayer.reserveAmmo;
+            const p = this.localPlayer;
+            const curW = p.currentWeapon || 'rifle';
+            const wData = (p.weapons && p.weapons[curW]) || { ammo: p.snowballs, reserve: p.reserveAmmo };
+
+            // Update weapon buttons active state
+            const btnKnife = document.getElementById('wBtnKnife');
+            const btnPistol = document.getElementById('wBtnPistol');
+            const btnRifle = document.getElementById('wBtnRifle');
+            if (btnKnife) btnKnife.classList.toggle('active', curW === 'knife');
+            if (btnPistol) btnPistol.classList.toggle('active', curW === 'pistol');
+            if (btnRifle) btnRifle.classList.toggle('active', curW === 'rifle');
+
+            const lblWeapon = document.getElementById('hudWeaponLabel');
+            const ammoText = document.getElementById('hudAmmoText');
+            const reloadHint = document.getElementById('hudReloadHint');
+
+            let wLabel = curW === 'knife' ? '🔪 PICHOQ' : (curW === 'pistol' ? '🔫 PISTOLET' : '💥 AK-47');
+            if (lblWeapon) lblWeapon.textContent = wLabel;
+
+            if (curW === 'knife') {
+                if (ammoText) ammoText.innerHTML = `<span>∞</span> / <span style="color:#a0aec0;">∞</span>`;
+                if (reloadHint) reloadHint.style.display = 'none';
+            } else {
+                if (ammoText) ammoText.innerHTML = `<span>${wData.ammo}</span> / <span style="color:#a0aec0;">${wData.reserve}</span>`;
+                if (reloadHint) {
+                    reloadHint.style.display = (wData.ammo === 0 && wData.reserve > 0) ? 'inline' : 'none';
+                }
+            }
+
+            const mobileSwitch = document.getElementById('btnMobileWeaponSwitch');
+            if (mobileSwitch) {
+                const icon = curW === 'knife' ? '🔪' : (curW === 'pistol' ? '🔫' : '💥');
+                mobileSwitch.innerHTML = `${icon}<span class="m-btn-label">${curW.toUpperCase()}</span>`;
+            }
+
+            const mobileCraft = document.getElementById('btnMobileCraft');
+            if (mobileCraft) {
+                mobileCraft.style.display = (curW === 'knife') ? 'none' : 'flex';
+            }
             return;
         }
         const slotsContainer = document.getElementById('snowballSlots');
@@ -2438,6 +2687,23 @@ class SnowClashGame {
             ctx.fillRect(screenX - baseW * 0.46, screenY - legH * 0.6 + legSwing, legW * 1.1, legH * 0.6);
             ctx.fillStyle = '#1b4332';
             ctx.fillRect(screenX + baseW * 0.02, screenY - legH * 0.6 - legSwing, legW * 1.1, legH * 0.6);
+        } else if (charType === 'barbie') {
+            // Barbie: Pushti oyoqlar va zamonaviy poshnali tuflilar
+            ctx.fillStyle = '#db2777';
+            ctx.fillRect(screenX - baseW * 0.40, screenY - legH + legSwing, legW * 0.9, legH);
+            ctx.fillRect(screenX + baseW * 0.06, screenY - legH - legSwing, legW * 0.9, legH);
+            // Tuflilar
+            ctx.fillStyle = '#be185d';
+            ctx.fillRect(screenX - baseW * 0.40, screenY - 6 * scale + legSwing, legW * 0.9, 6 * scale);
+            ctx.fillRect(screenX + baseW * 0.06, screenY - 6 * scale - legSwing, legW * 0.9, 6 * scale);
+        } else if (charType === 'soldier') {
+            // Soldier: Camo harbiy shim va qora etiklar
+            ctx.fillStyle = '#1a2e05';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - legH + legSwing, legW, legH);
+            ctx.fillRect(screenX + baseW * 0.04, screenY - legH - legSwing, legW, legH);
+            ctx.fillStyle = '#09090b';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - legH * 0.35 + legSwing, legW, legH * 0.35);
+            ctx.fillRect(screenX + baseW * 0.04, screenY - legH * 0.35 - legSwing, legW, legH * 0.35);
         }
 
         // ==========================================
@@ -2454,6 +2720,21 @@ class SnowClashGame {
             // Yoqa o'yig'i (V-neck)
             ctx.fillStyle = '#d7a17c';
             ctx.fillRect(screenX - torsoW * 0.18, torsoY, torsoW * 0.36, torsoH * 0.24);
+        } else if (charType === 'barbie') {
+            // Barbie: Pushti zamonaviy top libos
+            ctx.fillStyle = '#f472b6';
+            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
+            ctx.fillStyle = '#ec4899';
+            ctx.fillRect(screenX - torsoW * 0.3, torsoY + torsoH * 0.25, torsoW * 0.6, torsoH * 0.45);
+        } else if (charType === 'soldier') {
+            // Soldier: Camo harbiy kiyim va qora taktik nimcha
+            ctx.fillStyle = '#365314';
+            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(screenX - torsoW * 0.42, torsoY, torsoW * 0.84, torsoH * 0.9);
+            ctx.fillStyle = '#27272a';
+            ctx.fillRect(screenX - torsoW * 0.36, torsoY + torsoH * 0.35, torsoW * 0.3, torsoH * 0.35);
+            ctx.fillRect(screenX + torsoW * 0.06, torsoY + torsoH * 0.35, torsoW * 0.3, torsoH * 0.35);
         } else if (charType === 'zombie') {
             // Zombie: Ko'k-yashil futbolka (Rasmdagi kabi)
             ctx.fillStyle = '#007788';
@@ -2462,26 +2743,23 @@ class SnowClashGame {
             ctx.fillRect(screenX - torsoW * 0.18, torsoY, torsoW * 0.36, torsoH * 0.24);
         } else if (charType === 'skeleton') {
             // Skeleton: OCHIQ QOVURG'ALI SUYAK KO'KRAK (Rasmdagi kabi HOLLOW RIBCAGE!)
-            // Orqa fon bo'sh ko'rinadi (hollow)
-            ctx.fillStyle = '#1e293b'; // Bo'shliq soyasi
+            ctx.fillStyle = '#1e293b';
             ctx.fillRect(screenX - torsoW * 0.38, torsoY + torsoH * 0.15, torsoW * 0.76, torsoH * 0.7);
 
-            // Markaziy umurtqa suyagi (Spine column)
+            // Markaziy umurtqa suyagi
             ctx.fillStyle = '#9ca3af';
             ctx.fillRect(screenX - 3 * scale, torsoY, 6 * scale, torsoH);
 
-            // 3 ta oq qovurg'a shinalari (Horizontal ribs)
+            // Qovurg'alar
             ctx.fillStyle = '#e5e7eb';
-            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, 4 * scale); // Yelka suyagi
+            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, 4 * scale);
             ctx.fillRect(screenX - torsoW * 0.44, torsoY + torsoH * 0.3, torsoW * 0.88, 3 * scale);
             ctx.fillRect(screenX - torsoW * 0.44, torsoY + torsoH * 0.58, torsoW * 0.88, 3 * scale);
-            ctx.fillRect(screenX - torsoW * 0.32, torsoY + torsoH * 0.85, torsoW * 0.64, 4 * scale); // Tos suyagi
+            ctx.fillRect(screenX - torsoW * 0.32, torsoY + torsoH * 0.85, torsoW * 0.64, 4 * scale);
         } else if (charType === 'enderman') {
-            // Enderman: Uzun ingichka qora tana (Rasmdagi kabi)
             ctx.fillStyle = '#08080c';
             ctx.fillRect(screenX - torsoW * 0.35, torsoY - torsoH * 0.25, torsoW * 0.7, torsoH * 1.25);
         } else if (charType === 'creeper') {
-            // Creeper: Yashil pikselli tana
             ctx.fillStyle = '#38b000';
             ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
             ctx.fillStyle = '#2d6a4f';
@@ -2506,55 +2784,69 @@ class SnowClashGame {
         const armY = torsoY;
 
         if (charType === 'zombie') {
-            // ZOMBI: IKKALA QO'LI TO'G'RI OLDINGA CHO'ZILGAN (Rasmdagi zombie stancedek!)
-            ctx.fillStyle = '#4f772d'; // Yashil zombi qo'li
+            ctx.fillStyle = '#4f772d';
             ctx.fillRect(screenX - torsoW / 2 - armW * 0.9, armY - armH * 0.25, armW * 1.1, armH * 0.6);
             ctx.fillRect(screenX + torsoW / 2 - armW * 0.2, armY - armH * 0.25, armW * 1.1, armH * 0.6);
-            // Yenglar
             ctx.fillStyle = '#007788';
             ctx.fillRect(screenX - torsoW / 2 - armW * 0.9, armY, armW * 0.45, armH * 0.3);
             ctx.fillRect(screenX + torsoW / 2 + armW * 0.45, armY, armW * 0.45, armH * 0.3);
         } else if (charType === 'enderman') {
-            // ENDERMAN: TIZSADAN HAM PASTGA TUSHGAN JUDA UZUN QORA QO'LLAR!
             const longArmH = armH * 1.5;
             ctx.fillStyle = '#08080c';
             ctx.fillRect(screenX - torsoW / 2 - armW * 0.6, armY - legSwing * 0.3, armW * 0.6, longArmH);
             ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.3, armW * 0.6, longArmH);
         } else if (charType === 'skeleton') {
-            // SKELETON: Yupqa suyak qo'llar
             const thinArmW = armW * 0.5;
             ctx.fillStyle = '#d1d5db';
             ctx.fillRect(screenX - torsoW / 2 - thinArmW, armY - legSwing * 0.4, thinArmW, armH);
             ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.4, thinArmW, armH);
-            // Qo'lda qurol yoki kamon
             const handX = screenX + torsoW / 2 + thinArmW;
             const handY = armY + armH * 0.85;
             if (this.battleType === 'gun') {
                 ctx.fillStyle = '#1e293b';
                 ctx.fillRect(handX - 3 * scale, handY - 14 * scale, 6 * scale, 18 * scale);
             }
-        } else if (charType === 'steve') {
-            // STEVE: Tananing o'ng va chap qo'li
+        } else {
+            // Steve, Barbie, Soldier va boshqalar
+            let sleeveColor = (charType === 'barbie') ? '#f472b6' : ((charType === 'soldier') ? '#365314' : '#00a8a8');
+            let armSkinColor = (charType === 'barbie') ? '#fed7aa' : '#d7a17c';
+
             // Chap qo'l
-            ctx.fillStyle = '#00a8a8'; // Yeng
+            ctx.fillStyle = sleeveColor;
             ctx.fillRect(screenX - torsoW / 2 - armW, armY - legSwing * 0.4, armW, armH * 0.32);
-            ctx.fillStyle = '#d7a17c'; // Teri
+            ctx.fillStyle = armSkinColor;
             ctx.fillRect(screenX - torsoW / 2 - armW, armY + armH * 0.32 - legSwing * 0.4, armW, armH * 0.68);
 
             // O'ng qo'l
-            ctx.fillStyle = '#00a8a8';
+            ctx.fillStyle = sleeveColor;
             ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.4, armW, armH * 0.32);
-            ctx.fillStyle = '#d7a17c';
+            ctx.fillStyle = armSkinColor;
             ctx.fillRect(screenX + torsoW / 2, armY + armH * 0.32 + legSwing * 0.4, armW, armH * 0.68);
 
-            // Qo'ldagi qurol yoki qor to'pi
+            // Qo'ldagi qurol (Pichoq, Pistolet, Avtomat yoki Qor to'pi)
             const handX = screenX + torsoW / 2 + armW / 2;
             const handY = armY + armH * 0.85 + legSwing * 0.4;
+            const curW = otherP.currentWeapon || 'rifle';
+
             if (this.battleType === 'gun') {
-                ctx.fillStyle = '#854d0e'; // Wooden stock
-                ctx.fillRect(handX - 3 * scale, handY - 4 * scale, 7 * scale, 14 * scale);
-                ctx.fillStyle = '#1e293b'; // Barrel
-                ctx.fillRect(handX - 2 * scale, handY - 18 * scale, 5 * scale, 16 * scale);
+                if (curW === 'knife') {
+                    // Pichoq (Kumush tig', qora dasta)
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(handX - 2 * scale, handY - 4 * scale, 4 * scale, 8 * scale);
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.fillRect(handX - 1.5 * scale, handY - 18 * scale, 3 * scale, 14 * scale);
+                } else if (curW === 'pistol') {
+                    // Pistolet
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(handX - 2 * scale, handY - 10 * scale, 5 * scale, 12 * scale);
+                    ctx.fillRect(handX - 2 * scale, handY - 14 * scale, 5 * scale, 6 * scale);
+                } else {
+                    // AK-47 Avtomat
+                    ctx.fillStyle = '#854d0e';
+                    ctx.fillRect(handX - 3 * scale, handY - 4 * scale, 7 * scale, 14 * scale);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(handX - 2 * scale, handY - 18 * scale, 5 * scale, 16 * scale);
+                }
             } else if (otherP.snowballs > 0) {
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
@@ -2574,21 +2866,55 @@ class SnowClashGame {
             // Steve boshi: Teri #d7a17c, soch #4a2c11
             ctx.fillStyle = '#d7a17c';
             ctx.fillRect(headX, headY, headSize, headSize);
-            // Jigarrang soch (Top & Sides)
             ctx.fillStyle = '#4a2c11';
             ctx.fillRect(headX, headY, headSize, headSize * 0.3);
             ctx.fillRect(headX, headY, headSize * 0.18, headSize * 0.55);
             ctx.fillRect(headX + headSize * 0.82, headY, headSize * 0.18, headSize * 0.55);
-            // Moviy ko'zlar
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(headX + headSize * 0.16, headY + headSize * 0.48, headSize * 0.24, headSize * 0.14);
             ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.48, headSize * 0.24, headSize * 0.14);
             ctx.fillStyle = '#25397a';
             ctx.fillRect(headX + headSize * 0.28, headY + headSize * 0.48, headSize * 0.12, headSize * 0.14);
             ctx.fillRect(headX + headSize * 0.72, headY + headSize * 0.48, headSize * 0.12, headSize * 0.14);
-            // Burun
             ctx.fillStyle = '#c58b68';
             ctx.fillRect(headX + headSize * 0.42, headY + headSize * 0.64, headSize * 0.16, headSize * 0.12);
+        } else if (charType === 'barbie') {
+            // Barbie boshi: Oltin sariq uzun soch, mayin yuz, moviy ko'zlar, pushti lab
+            ctx.fillStyle = '#fed7aa';
+            ctx.fillRect(headX, headY, headSize, headSize);
+            ctx.fillStyle = '#fde047';
+            ctx.fillRect(headX, headY, headSize, headSize * 0.3);
+            ctx.fillRect(headX - 3 * scale, headY + headSize * 0.15, headSize * 0.22, headSize * 0.95);
+            ctx.fillRect(headX + headSize * 0.78, headY + headSize * 0.15, headSize * 0.22 + 3 * scale, headSize * 0.95);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(headX + headSize * 0.16, headY + headSize * 0.44, headSize * 0.24, headSize * 0.16);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.44, headSize * 0.24, headSize * 0.16);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillRect(headX + headSize * 0.24, headY + headSize * 0.44, headSize * 0.16, headSize * 0.16);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.44, headSize * 0.16, headSize * 0.16);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(headX + headSize * 0.14, headY + headSize * 0.40, headSize * 0.28, 2 * scale);
+            ctx.fillRect(headX + headSize * 0.58, headY + headSize * 0.40, headSize * 0.28, 2 * scale);
+            ctx.fillStyle = '#f472b6';
+            ctx.fillRect(headX + headSize * 0.12, headY + headSize * 0.65, headSize * 0.18, headSize * 0.1);
+            ctx.fillRect(headX + headSize * 0.70, headY + headSize * 0.65, headSize * 0.18, headSize * 0.1);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(headX + headSize * 0.36, headY + headSize * 0.75, headSize * 0.28, headSize * 0.12);
+        } else if (charType === 'soldier') {
+            // Soldier: Camo harbiy dubulg'a, taktik chiziqlar
+            ctx.fillStyle = '#c68652';
+            ctx.fillRect(headX, headY, headSize, headSize);
+            ctx.fillStyle = '#283618';
+            ctx.fillRect(headX - 2 * scale, headY - 4 * scale, headSize + 4 * scale, headSize * 0.38);
+            ctx.fillStyle = '#365314';
+            ctx.fillRect(headX + headSize * 0.1, headY + headSize * 0.55, headSize * 0.25, headSize * 0.18);
+            ctx.fillRect(headX + headSize * 0.6, headY + headSize * 0.65, headSize * 0.3, headSize * 0.16);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(headX + headSize * 0.18, headY + headSize * 0.42, headSize * 0.22, headSize * 0.12);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.42, headSize * 0.22, headSize * 0.12);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(headX + headSize * 0.24, headY + headSize * 0.42, headSize * 0.12, headSize * 0.12);
+            ctx.fillRect(headX + headSize * 0.64, headY + headSize * 0.42, headSize * 0.12, headSize * 0.12);
         } else if (charType === 'zombie') {
             // Zombie: Yashil kalla (#4f772d), qora ko'zlar
             ctx.fillStyle = '#4f772d';

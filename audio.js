@@ -295,6 +295,131 @@ class SoundSystem {
         osc.stop(now + 0.16);
     }
 
+    playKnifeSlash() {
+        if (!this.ctx || this.sfxMuted) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+
+        // Shamol va metall kesuvchi shiddatli ovoz
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(950, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.12);
+
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+    }
+
+    playPistolShot() {
+        if (!this.ctx || this.sfxMuted) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+
+        // Pistoletning qarsillagan aniq o'q ovozi
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.14);
+
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.14);
+
+        // Oq shovqin (Muzzle Blast)
+        const bufferSize = this.ctx.sampleRate * 0.08;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(2200, now);
+        const gainNoise = this.ctx.createGain();
+        gainNoise.gain.setValueAtTime(0.24, now);
+        gainNoise.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+        noise.connect(filter);
+        filter.connect(gainNoise);
+        gainNoise.connect(this.ctx.destination);
+        noise.start(now);
+    }
+
+    playRifleShot() {
+        if (!this.ctx || this.sfxMuted) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+
+        // AK-47 / Avtomatning og'ir o'q ovozi
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.11);
+
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.11);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.11);
+
+        const bufferSize = this.ctx.sampleRate * 0.07;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1800, now);
+        const gainNoise = this.ctx.createGain();
+        gainNoise.gain.setValueAtTime(0.28, now);
+        gainNoise.gain.exponentialRampToValueAtTime(0.01, now + 0.07);
+
+        noise.connect(filter);
+        filter.connect(gainNoise);
+        gainNoise.connect(this.ctx.destination);
+        noise.start(now);
+    }
+
+    playWeaponSwitch() {
+        if (!this.ctx || this.sfxMuted) return;
+        this.resume();
+        const now = this.ctx.currentTime;
+        // Qurolni o'qlash / zaxiraga almashtirish mexanik chertishi
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.setValueAtTime(1800, now + 0.04);
+        osc.frequency.setValueAtTime(900, now + 0.08);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+    }
+
     playHit() {
         if (!this.ctx || this.sfxMuted) return;
         this.resume();

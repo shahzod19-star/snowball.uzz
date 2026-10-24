@@ -199,6 +199,40 @@ class SnowClash3D {
             ctx.fillRect(40, 40, 8, 18);
         });
 
+        // Barbie Face (Go'zal qizlar personaji)
+        this.textures.barbieFace = this.createCanvasTexture(64, 64, (ctx, w, h) => {
+            ctx.fillStyle = '#fed7aa'; ctx.fillRect(0, 0, w, h); // Nozik mayin yuz
+            ctx.fillStyle = '#fde047'; ctx.fillRect(0, 0, w, 22); // Oltin sariq soch
+            ctx.fillRect(0, 22, 14, 20); ctx.fillRect(w - 14, 22, 14, 20);
+            // Moviy ko'zlar
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(14, 28, 10, 8); ctx.fillRect(40, 28, 10, 8);
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(18, 28, 6, 8); ctx.fillRect(40, 28, 6, 8);
+            // Kipriklar
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(13, 26, 12, 2); ctx.fillRect(39, 26, 12, 2);
+            // Pushti yonoqlar
+            ctx.fillStyle = '#f472b6';
+            ctx.fillRect(12, 38, 8, 4); ctx.fillRect(44, 38, 8, 4);
+            // Pushti lab
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(24, 46, 16, 6);
+        });
+
+        // Soldier Face (Camo Harbiy Jangchi)
+        this.textures.soldierFace = this.createCanvasTexture(64, 64, (ctx, w, h) => {
+            ctx.fillStyle = '#c68652'; ctx.fillRect(0, 0, w, h);
+            // Kamuflaj bo'yoq
+            ctx.fillStyle = '#365314'; ctx.fillRect(6, 18, 18, 12); ctx.fillRect(36, 32, 20, 10);
+            ctx.fillStyle = '#713f12'; ctx.fillRect(20, 28, 16, 8); ctx.fillRect(8, 42, 16, 8);
+            // Dubulg'a qirrasi
+            ctx.fillStyle = '#1a2e05'; ctx.fillRect(0, 0, w, 16);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 14, w, 4);
+            // Ko'zlar
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(14, 26, 10, 7); ctx.fillRect(40, 26, 10, 7);
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(18, 26, 6, 7); ctx.fillRect(40, 26, 6, 7);
+            ctx.fillStyle = '#1e293b'; ctx.fillRect(24, 48, 16, 4);
+        });
+
         // TNT Block Texture
         this.textures.tntSide = this.createCanvasTexture(64, 64, (ctx, w, h) => {
             ctx.fillStyle = '#dc2626'; ctx.fillRect(0, 0, w, h);
@@ -367,9 +401,9 @@ class SnowClash3D {
     }
 
     // ==============================================================
-    // 3D MINECRAFT PERSONAJI (STEVE, SKELETON, ENDERMAN, ZOMBIE, CREEPER)
+    // 3D MINECRAFT PERSONAJI (STEVE, BARBIE, SOLDIER, SKELETON, ENDERMAN, ZOMBIE, CREEPER)
     // ==============================================================
-    createMinecraftCharacterMesh(charType, team, isGun) {
+    createMinecraftCharacterMesh(charType, team, isGun, weaponType = 'rifle') {
         const root = new THREE.Group();
 
         let headTex = this.textures.steveFace;
@@ -378,7 +412,22 @@ class SnowClash3D {
         let pantsColor = 0x3a4bb2;
         let armColor = shirtColor;
 
-        if (charType === 'skeleton') {
+        let isBarbie = (charType === 'barbie');
+        let isSoldier = (charType === 'soldier');
+
+        if (charType === 'barbie') {
+            headTex = this.textures.barbieFace;
+            skinColor = 0xfed7aa;
+            shirtColor = 0xf472b6;
+            pantsColor = 0xdb2777;
+            armColor = 0xfed7aa;
+        } else if (charType === 'soldier') {
+            headTex = this.textures.soldierFace;
+            skinColor = 0xc68652;
+            shirtColor = 0x365314;
+            pantsColor = 0x1a2e05;
+            armColor = 0x365314;
+        } else if (charType === 'skeleton') {
             headTex = this.textures.skeletonFace;
             skinColor = 0xd1d5db;
             shirtColor = 0xd1d5db;
@@ -445,11 +494,11 @@ class SnowClash3D {
                 bodyGroup.add(leg);
                 legs.push(leg);
             }
-            root.userData = { bodyGroup, head, legs, charType, isCreeper: true };
+            root.userData = { bodyGroup, head, legs, charType, isCreeper: true, isGun, weaponType };
             return root;
         }
 
-        // Standard gumanoid personajlar (Steve, Skeleton, Enderman, Zombie)
+        // Standard gumanoid personajlar (Steve, Barbie, Soldier, Skeleton, Enderman, Zombie)
         const isEnderman = (charType === 'enderman');
         const isSkeleton = (charType === 'skeleton');
         const isZombie = (charType === 'zombie');
@@ -500,6 +549,35 @@ class SnowClash3D {
         head.castShadow = true;
         bodyGroup.add(head);
 
+        // Barbie uchun go'zal uzun sochlar
+        if (isBarbie) {
+            const hairMat = new THREE.MeshStandardMaterial({ color: 0xfde047 });
+            const backHair = new THREE.Mesh(new THREE.BoxGeometry(16, 26, 4), hairMat);
+            backHair.position.set(0, -6, -7);
+            head.add(backHair);
+
+            const sideHairL = new THREE.Mesh(new THREE.BoxGeometry(3, 20, 4), hairMat);
+            sideHairL.position.set(-8, -5, -2);
+            head.add(sideHairL);
+
+            const sideHairR = new THREE.Mesh(new THREE.BoxGeometry(3, 20, 4), hairMat);
+            sideHairR.position.set(8, -5, -2);
+            head.add(sideHairR);
+        }
+
+        // Soldier uchun harbiy dubulg'a va taktik nimcha
+        if (isSoldier) {
+            const helmetMat = new THREE.MeshStandardMaterial({ color: 0x283618 });
+            const helmetTop = new THREE.Mesh(new THREE.BoxGeometry(17.5, 7, 17.5), helmetMat);
+            helmetTop.position.set(0, 5, 0);
+            head.add(helmetTop);
+
+            const vestMat = new THREE.MeshStandardMaterial({ color: 0x18181b });
+            const vest = new THREE.Mesh(new THREE.BoxGeometry(15, 18, 10.5), vestMat);
+            vest.position.set(0, 0, 0);
+            torso.add(vest);
+        }
+
         // 3. Arms (Qo'llar) pivot nuqtalari bilan
         const armH = 22 * (isEnderman ? 1.5 : 1.0);
         const armGeo = new THREE.BoxGeometry(limbW, armH, limbW);
@@ -527,31 +605,75 @@ class SnowClash3D {
             rightArmPivot.rotation.x = -Math.PI / 2;
         }
 
-        // 4. Qo'ldagi 3D Qurol (3D Weapon)
+        // 4. Qo'ldagi 3D Qurol (Pichoq, Pistolet, Avtomat yoki Qor)
         const weaponGroup = new THREE.Group();
+        const curWeapon = weaponType || (isGun ? 'rifle' : 'snow');
+
         if (isGun) {
-            // 3D Avtomat / Miltiq (Assault Rifle)
-            const bodyM = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 18), new THREE.MeshStandardMaterial({ color: 0x1f2937 }));
-            bodyM.position.z = 6;
-            weaponGroup.add(bodyM);
+            if (curWeapon === 'knife') {
+                // 3D Jangovar Pichoq (Combat Knife)
+                const bladeGeo = new THREE.BoxGeometry(1.2, 11, 3.5);
+                const bladeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+                const blade = new THREE.Mesh(bladeGeo, bladeMat);
+                blade.position.set(0, 5, 2);
+                weaponGroup.add(blade);
 
-            const barrelM = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 12), new THREE.MeshStandardMaterial({ color: 0x4b5563 }));
-            barrelM.position.z = 18;
-            weaponGroup.add(barrelM);
+                const handleGeo = new THREE.BoxGeometry(2, 6, 2.5);
+                const handleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+                const handle = new THREE.Mesh(handleGeo, handleMat);
+                handle.position.set(0, -2, 0);
+                weaponGroup.add(handle);
 
-            const stockM = new THREE.Mesh(new THREE.BoxGeometry(2.5, 5, 8), new THREE.MeshStandardMaterial({ color: 0x78350f }));
-            stockM.position.z = -5;
-            weaponGroup.add(stockM);
+                const guardGeo = new THREE.BoxGeometry(3, 1.2, 4.5);
+                const guardMat = new THREE.MeshStandardMaterial({ color: 0x475569 });
+                const guard = new THREE.Mesh(guardGeo, guardMat);
+                guard.position.set(0, 1, 1);
+                weaponGroup.add(guard);
 
-            const magM = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 4), new THREE.MeshStandardMaterial({ color: 0x111827 }));
-            magM.position.set(0, -5, 5);
-            magM.rotation.x = 0.2;
-            weaponGroup.add(magM);
+                weaponGroup.position.set(0, -armH + 2, 4);
+                weaponGroup.rotation.x = Math.PI / 4;
+                rightArmPivot.add(weaponGroup);
+            } else if (curWeapon === 'pistol') {
+                // 3D Taktik Pistolet (Pistol)
+                const slideGeo = new THREE.BoxGeometry(2.4, 3.2, 11);
+                const slideMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.3 });
+                const slide = new THREE.Mesh(slideGeo, slideMat);
+                slide.position.set(0, 1.5, 4);
+                weaponGroup.add(slide);
 
-            weaponGroup.position.set(0, -armH + 2, 6);
-            rightArmPivot.add(weaponGroup);
+                const gripGeo = new THREE.BoxGeometry(2.2, 6.5, 3.2);
+                const gripMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+                const grip = new THREE.Mesh(gripGeo, gripMat);
+                grip.position.set(0, -2.5, 0);
+                grip.rotation.x = -0.25;
+                weaponGroup.add(grip);
+
+                weaponGroup.position.set(0, -armH + 2, 4);
+                rightArmPivot.add(weaponGroup);
+            } else {
+                // 3D Avtomat / AK-47 (Assault Rifle)
+                const bodyM = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 18), new THREE.MeshStandardMaterial({ color: 0x1f2937 }));
+                bodyM.position.z = 6;
+                weaponGroup.add(bodyM);
+
+                const barrelM = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 12), new THREE.MeshStandardMaterial({ color: 0x4b5563, metalness: 0.7 }));
+                barrelM.position.z = 18;
+                weaponGroup.add(barrelM);
+
+                const stockM = new THREE.Mesh(new THREE.BoxGeometry(2.5, 5, 8), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+                stockM.position.z = -5;
+                weaponGroup.add(stockM);
+
+                const magM = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 4), new THREE.MeshStandardMaterial({ color: 0x111827 }));
+                magM.position.set(0, -5, 5);
+                magM.rotation.x = 0.2;
+                weaponGroup.add(magM);
+
+                weaponGroup.position.set(0, -armH + 2, 6);
+                rightArmPivot.add(weaponGroup);
+            }
         } else {
-            // 3D Qor to'pi yoki Yoy
+            // 3D Qor to'pi
             const snowSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(4, 8, 8),
                 new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
@@ -587,7 +709,14 @@ class SnowClash3D {
             leftArmPivot, rightArmPivot,
             leftLegPivot, rightLegPivot,
             weaponGroup,
-            charType, isZombie, isSkeleton, isEnderman
+            charType,
+            weaponType: curWeapon,
+            isGun,
+            isBarbie,
+            isSoldier,
+            isZombie,
+            isSkeleton,
+            isEnderman
         };
 
         return root;
@@ -737,11 +866,22 @@ class SnowClash3D {
             activeIds.add(id);
 
             let meshGroup = this.playerMeshes.get(id);
+            const neededChar = p.characterType || 'steve';
+            const isGunBattle = (this.game.battleType === 'gun');
+            const neededWeapon = isGunBattle ? (p.currentWeapon || 'rifle') : 'snow';
+
+            if (meshGroup && (meshGroup.userData.charType !== neededChar || meshGroup.userData.isGun !== isGunBattle || meshGroup.userData.weaponType !== neededWeapon)) {
+                this.scene.remove(meshGroup);
+                this.playerMeshes.delete(id);
+                meshGroup = null;
+            }
+
             if (!meshGroup) {
                 meshGroup = this.createMinecraftCharacterMesh(
-                    p.characterType || 'steve',
+                    neededChar,
                     p.team,
-                    this.game.battleType === 'gun'
+                    isGunBattle,
+                    neededWeapon
                 );
                 this.scene.add(meshGroup);
                 this.playerMeshes.set(id, meshGroup);

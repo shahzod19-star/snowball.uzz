@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     requestAnimationFrame(renderHeroPreview);
 
-    // Minecraft Personaj tanlovi (Steve, Zombie, Skelet, Enderman, Creeper)
+    // Minecraft Personaj tanlovi (Steve, Barbie, Soldat, Zombie, Skelet, Enderman, Creeper)
     const mcCharCards = document.querySelectorAll('.mc-char-card');
     function updateMcCharUI() {
         mcCharCards.forEach(c => {
@@ -101,20 +101,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (settingCharSelect) settingCharSelect.value = characterType;
         localStorage.setItem('snow_char_type', characterType);
-        if (game.localPlayer) game.localPlayer.characterType = characterType;
+        localStorage.setItem('snow_equipped_skin', characterType);
+        if (window.shopAndQuests) {
+            window.shopAndQuests.equippedSkin = characterType;
+        }
+        if (game.localPlayer) {
+            game.localPlayer.characterType = characterType;
+            game.localPlayer.skin = characterType;
+        }
     }
 
     mcCharCards.forEach(card => {
-        card.addEventListener('click', () => {
-            characterType = card.getAttribute('data-char') || 'steve';
-            updateMcCharUI();
-        });
+        const handleSelect = (e) => {
+            if (e) e.preventDefault();
+            const chosen = card.getAttribute('data-char') || 'steve';
+            if (characterType !== chosen) {
+                characterType = chosen;
+                updateMcCharUI();
+                if (window.soundSystem) window.soundSystem.playClick();
+            }
+        };
+        card.addEventListener('click', handleSelect);
+        card.addEventListener('pointerdown', handleSelect);
     });
 
     if (settingCharSelect) {
         settingCharSelect.addEventListener('change', (e) => {
             characterType = e.target.value;
             updateMcCharUI();
+            if (window.soundSystem) window.soundSystem.playClick();
         });
     }
     updateMcCharUI();
@@ -183,23 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateBattleTypeUI();
 
-    // Rang tanlash aylanachalari
-    const colorCircles = document.querySelectorAll('.color-circle');
-    colorCircles.forEach(circle => {
-        if (circle.getAttribute('data-color') === playerColor) {
-            circle.classList.add('active');
-        } else {
-            circle.classList.remove('active');
-        }
 
-        circle.addEventListener('click', () => {
-            colorCircles.forEach(c => c.classList.remove('active'));
-            circle.classList.add('active');
-            playerColor = circle.getAttribute('data-color');
-            localStorage.setItem('snow_player_color', playerColor);
-            game.localPlayer.color = playerColor;
-        });
-    });
 
     // -------------------------------------------------------------
     // 2. MUSIQA VA SFX PLEYER BOSHQARUVI (HUD VA BOSH MENYUDAGI TUGMALAR)
