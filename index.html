@@ -40,6 +40,11 @@
                 </div>
             </div>
 
+            <!-- KAMERA REJIMINI ALMASHTIRISH (1-LITSO / 2-LITSO) -->
+            <button class="btn-perspective-pill interactive" id="btnTogglePerspective" title="Kamera rejimini almashtirish (V / F)">
+                👁️ 1-LITSO (FPS)
+            </button>
+
             <div class="hud-controls interactive">
                 <button class="icon-btn" id="btnFullscreen" title="To'liq ekran (Fullscreen)">⛶</button>
                 <button class="icon-btn" id="btnMusic" title="Musiqa (Yoqish/O'chirish)">🎵</button>
@@ -81,8 +86,9 @@
 
             <div class="controls-guide-bar">
                 <span><span class="key-badge">W,A,S,D</span> Harakat</span>
-                <span><span class="key-badge">Sichqoncha</span> Nishon & Otish</span>
-                <span><span class="key-badge">Space</span> Qor yumaloqlash</span>
+                <span><span class="key-badge">V / F</span> 1-Litso / 2-Litso</span>
+                <span><span class="key-badge">Sichqoncha</span> Otish / Nishon</span>
+                <span><span class="key-badge">Space</span> Qor yasash</span>
                 <span><span class="key-badge">P / Esc</span> Pauza</span>
             </div>
         </footer>
@@ -90,6 +96,11 @@
 
     <!-- Mobil Sensorli Boshqaruv (Virtual Joystick & Tugmalar) -->
     <div class="mobile-controls-layer" id="mobileControlsLayer">
+        <!-- Mobil Kamera Rejimi Tugmasi (1-Litso / 2-Litso) -->
+        <button type="button" class="m-perspective-toggle interactive" id="btnMobilePerspective" title="Kamera rejimini almashtirish">
+            👁️ 1-LITSO
+        </button>
+
         <!-- Chap tomonda: Dinamik Virtual Joystik -->
         <div class="joystick-zone" id="joystickZone">
             <div class="joystick-base" id="joystickBase">

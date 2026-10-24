@@ -24,6 +24,12 @@ class SnowClashGame {
         this.mapType = 'wonderland'; // 'wonderland', 'fortress', 'forest'
         this.roomCode = '';
 
+        // Kamera Rejimi (1-Litso FPS vs 2-Litso Tepadan)
+        this.cameraMode = localStorage.getItem('snow_camera_mode') || 'first_person'; // 'first_person' (1-litso) yoki 'third_person' (2-litso)
+        this.gunRecoil = 0;
+        this.gunMuzzleFlash = 0;
+        this.lastTouchTurnX = null;
+
         // Tanga va Iqtisodiyot
         this.coins = parseInt(localStorage.getItem('snow_coins') || '100', 10);
         this.matchCoinsEarned = 0;
@@ -227,6 +233,12 @@ class SnowClashGame {
                 this.startCrafting();
             }
 
+            // V / F / C - Kamera Rejimini almashtirish (1-Litso / 2-Litso)
+            if ((e.key.toLowerCase() === 'v' || e.key.toLowerCase() === 'f' || e.key.toLowerCase() === 'c') && !this.isPaused && this.isRunning) {
+                e.preventDefault();
+                this.toggleCameraMode();
+            }
+
             // Pauza (Escape yoki P)
             if ((e.key.toLowerCase() === 'p' || e.key === 'Escape' || e.code === 'Escape') && this.isRunning) {
                 e.preventDefault();
@@ -242,7 +254,32 @@ class SnowClashGame {
             this.keys[e.code] = false;
         });
 
+        // 1-Litso va 2-Litso UI Tugmalari
+        const btnPersp = document.getElementById('btnTogglePerspective');
+        if (btnPersp) {
+            btnPersp.addEventListener('click', () => this.toggleCameraMode());
+        }
+        const btnMobPersp = document.getElementById('btnMobilePerspective');
+        if (btnMobPersp) {
+            const handleMobToggle = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleCameraMode();
+            };
+            btnMobPersp.addEventListener('click', handleMobToggle);
+            btnMobPersp.addEventListener('touchstart', handleMobToggle, { passive: false });
+        }
+
         window.addEventListener('mousemove', (e) => {
+            if (this.cameraMode === 'first_person' && this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
+                // 1-Litso FPS nishon burilishi
+                if (e.movementX !== undefined && Math.abs(e.movementX) < 140) {
+                    this.localPlayer.angle += e.movementX * 0.0035;
+                } else {
+                    const diffX = e.clientX - (this.width / 2);
+                    this.localPlayer.angle += diffX * 0.00015;
+                }
+            }
             this.mousePos.x = e.clientX;
             this.mousePos.y = e.clientY;
         });
@@ -266,7 +303,6 @@ class SnowClashGame {
         });
 
         window.addEventListener('contextmenu', (e) => e.preventDefault());
-
     }
 
     initMobileControls() {
@@ -532,6 +568,7 @@ class SnowClashGame {
         this.updateHpUI();
         this.updateSnowballSlotsUI();
         this.updateScoreUI();
+        this.updatePerspectiveButtonUI();
 
         const mobileLayer = document.getElementById('mobileControlsLayer');
         if (mobileLayer) {
@@ -595,6 +632,25 @@ class SnowClashGame {
             case '4v4': return '4 vs 4 Squad';
             default: return 'Battle Royale';
         }
+    }
+
+    toggleCameraMode() {
+        this.cameraMode = (this.cameraMode === 'first_person') ? 'third_person' : 'first_person';
+        localStorage.setItem('snow_camera_mode', this.cameraMode);
+        this.updatePerspectiveButtonUI();
+        const msg = (this.cameraMode === 'first_person') 
+            ? '👁️ 1-LITSO (3D FPS Rejimi yoqildi!)' 
+            : '🎮 2-LITSO (Tepadan ko\'rish rejimi yoqildi!)';
+        this.showKillFeed(msg, false);
+        if (window.soundSystem) window.soundSystem.playClick();
+    }
+
+    updatePerspectiveButtonUI() {
+        const btn = document.getElementById('btnTogglePerspective');
+        const mBtn = document.getElementById('btnMobilePerspective');
+        const text = (this.cameraMode === 'first_person') ? '👁️ 1-LITSO (FPS)' : '🎮 2-LITSO (TEPADAN)';
+        if (btn) btn.innerHTML = text;
+        if (mBtn) mBtn.innerHTML = text;
     }
 
     spawnBots() {
@@ -737,7 +793,12 @@ class SnowClashGame {
         let angle = targetAngle;
         let dist = 380;
 
-        if (angle === null) {
+        if (this.cameraMode === 'first_person') {
+            angle = this.localPlayer.angle;
+            dist = 550;
+            this.gunRecoil = 1.0;
+            this.gunMuzzleFlash = 6;
+        } else if (angle === null) {
             if (this.touchAimActive) {
                 // Ekranga barmog'i bilan tegilganda
                 const dx = this.mousePos.x - this.localPlayer.x;
@@ -766,7 +827,7 @@ class SnowClashGame {
         }
 
         // QOR TO'PI TEZLIGI
-        const speed = 15.5;
+        const speed = (this.cameraMode === 'first_person') ? 18.0 : 15.5;
 
         const snowball = {
             id: 'sb_' + Math.random().toString(36).substr(2, 7),
@@ -899,6 +960,8 @@ class SnowClashGame {
 
         if (p.throwCooldown > 0) p.throwCooldown--;
         if (p.throwAnim > 0) p.throwAnim--;
+        if (this.gunRecoil > 0) this.gunRecoil = Math.max(0, this.gunRecoil - 0.08);
+        if (this.gunMuzzleFlash > 0) this.gunMuzzleFlash--;
 
         if (p.isCrafting) {
             p.craftProgress++;
@@ -926,24 +989,52 @@ class SnowClashGame {
         let dx = 0;
         let dy = 0;
 
-        if (this.keys['w'] || this.keys['arrowup'] || this.keys['keyw']) dy -= 1;
-        if (this.keys['s'] || this.keys['arrowdown'] || this.keys['keys']) dy += 1;
-        if (this.keys['a'] || this.keys['arrowleft'] || this.keys['keya']) dx -= 1;
-        if (this.keys['d'] || this.keys['arrowright'] || this.keys['keyd']) dx += 1;
+        if (this.cameraMode === 'first_person') {
+            // 1-LITSO (FPS): W/S oldinga-orqaga, A/D chapga-o'ngga (strafe)
+            let fwd = 0;
+            let strafe = 0;
 
-        // Virtual Joystik harakati
-        if (this.joystick && this.joystick.active && (Math.abs(this.joystick.dx) > 0.05 || Math.abs(this.joystick.dy) > 0.05)) {
-            dx = this.joystick.dx;
-            dy = this.joystick.dy;
-        }
+            if (this.keys['w'] || this.keys['arrowup'] || this.keys['keyw']) fwd += 1;
+            if (this.keys['s'] || this.keys['arrowdown'] || this.keys['keys']) fwd -= 1;
+            if (this.keys['a'] || this.keys['keya']) strafe -= 1;
+            if (this.keys['d'] || this.keys['keyd']) strafe += 1;
 
-        if (dx !== 0 && dy !== 0 && (!this.joystick || !this.joystick.active)) {
-            dx *= 0.7071;
-            dy *= 0.7071;
+            // Q va E yoki chap/o'ng strelkalar bilan burilish
+            if (this.keys['arrowleft'] || this.keys['keyq']) p.angle -= 0.045;
+            if (this.keys['arrowright'] || this.keys['keye']) p.angle += 0.045;
+
+            // Joystik 1-litsoda: Y o'qi oldinga/orqaga, X o'qi strafe
+            if (this.joystick && this.joystick.active && (Math.abs(this.joystick.dx) > 0.05 || Math.abs(this.joystick.dy) > 0.05)) {
+                fwd += -this.joystick.dy;
+                strafe += this.joystick.dx;
+            }
+
+            if (fwd !== 0 && strafe !== 0 && (!this.joystick || !this.joystick.active)) {
+                fwd *= 0.7071;
+                strafe *= 0.7071;
+            }
+
+            dx = Math.cos(p.angle) * fwd + Math.cos(p.angle + Math.PI / 2) * strafe;
+            dy = Math.sin(p.angle) * fwd + Math.sin(p.angle + Math.PI / 2) * strafe;
+        } else {
+            // 2-LITSO (Tepadan): W/S/A/D odatiy global koordinatalar
+            if (this.keys['w'] || this.keys['arrowup'] || this.keys['keyw']) dy -= 1;
+            if (this.keys['s'] || this.keys['arrowdown'] || this.keys['keys']) dy += 1;
+            if (this.keys['a'] || this.keys['arrowleft'] || this.keys['keya']) dx -= 1;
+            if (this.keys['d'] || this.keys['arrowright'] || this.keys['keyd']) dx += 1;
+
+            if (this.joystick && this.joystick.active && (Math.abs(this.joystick.dx) > 0.05 || Math.abs(this.joystick.dy) > 0.05)) {
+                dx = this.joystick.dx;
+                dy = this.joystick.dy;
+            }
+
+            if (dx !== 0 && dy !== 0 && (!this.joystick || !this.joystick.active)) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
         }
 
         p.isMoving = (Math.hypot(dx, dy) > 0.08);
-        // Shift tugmasi yoki Mobil Sprint yoqilganda
         p.isSprinting = ((this.keys['shift'] || this.keys['shiftleft'] || this.keys['shiftright']) || this.mobileSprinting) && p.isMoving;
 
         const currentSpeed = p.isSprinting ? p.sprintSpeed : p.speed;
@@ -967,12 +1058,14 @@ class SnowClashGame {
         }
 
         // Qahramonning nishon burchagi
-        if (this.touchAimActive) {
-            p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
-        } else if (this.joystick && this.joystick.active && p.isMoving) {
-            p.angle = Math.atan2(dy, dx);
-        } else {
-            p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+        if (this.cameraMode !== 'first_person') {
+            if (this.touchAimActive) {
+                p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+            } else if (this.joystick && this.joystick.active && p.isMoving) {
+                p.angle = Math.atan2(dy, dx);
+            } else {
+                p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
+            }
         }
     }
 
@@ -1502,6 +1595,14 @@ class SnowClashGame {
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.width, this.height);
 
+        if (this.cameraMode === 'first_person') {
+            this.renderFirstPerson(ctx);
+        } else {
+            this.renderThirdPerson(ctx);
+        }
+    }
+
+    renderThirdPerson(ctx) {
         this.renderTerrain(ctx);
         this.renderFootprints(ctx);
         this.renderGroundCoins(ctx);
@@ -1514,6 +1615,713 @@ class SnowClashGame {
         this.renderSnowballs(ctx);
         this.renderParticles(ctx);
         this.renderSnowflakes(ctx);
+    }
+
+    // =======================================================
+    // 1-LITSO (3D FIRST PERSON PERSPECTIVE) DVIGATELI
+    // =======================================================
+    renderFirstPerson(ctx) {
+        const p = this.localPlayer;
+        const walkBob = p.isMoving ? Math.sin(p.walkCycle) * 5 : 0;
+        const horizonY = this.height * 0.48 + walkBob;
+
+        // 1. Qishki Osmon, Tog'lar va Qorli Yer
+        this.renderFirstPersonSky(ctx, horizonY, p);
+
+        // 2. 3D Proyeksiyalangan Ob'ektlar (Dushmanlar, Daraxtlar, Qor to'plari, Tangalar)
+        this.renderFirstPersonEntities(ctx, horizonY, p);
+
+        // 3. 3D Qor Bo'roni (Blizzard)
+        this.renderFirstPersonSnowflakes(ctx, horizonY);
+
+        // 4. Oldingi qatordagi Voxel Qo'l va Qor Quroli (Rasmdagidek)
+        if (!p.isDead) {
+            this.renderFirstPersonGun(ctx, p);
+        }
+
+        // 5. Retro 1-Litso HUD (❤️ Yurak, Sariq Raqamli Hisob, Krosshayr Nishon)
+        this.renderFirstPersonHUD(ctx, p);
+    }
+
+    renderFirstPersonSky(ctx, horizonY, p) {
+        const w = this.width;
+        const h = this.height;
+
+        // Osmon gradienti
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0, '#5680a6');
+        skyGrad.addColorStop(0.55, '#89b2d3');
+        skyGrad.addColorStop(1, '#d5e6f2');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, horizonY);
+
+        // Uzoqdagi qorli tog'lar (Parallax)
+        ctx.save();
+        const mountainOffset = (p.angle * 130) % (w * 0.6);
+        ctx.fillStyle = '#adcce0';
+        ctx.beginPath();
+        ctx.moveTo(-w, horizonY);
+        for (let x = -w * 2; x < w * 3; x += 110) {
+            const peakH = 35 + Math.sin(x * 0.014) * 26 + Math.cos(x * 0.028) * 16;
+            ctx.lineTo(x - mountainOffset, horizonY - peakH);
+        }
+        ctx.lineTo(w * 3, horizonY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Yaqinroq oq cho'qqilar
+        ctx.fillStyle = '#cde2ee';
+        ctx.beginPath();
+        ctx.moveTo(-w, horizonY);
+        for (let x = -w * 2; x < w * 3; x += 85) {
+            const peakH = 20 + Math.sin(x * 0.022 + 1) * 16 + Math.cos(x * 0.04) * 12;
+            ctx.lineTo(x - mountainOffset * 1.3, horizonY - peakH);
+        }
+        ctx.lineTo(w * 3, horizonY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Qorli yer gradienti
+        const groundGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+        groundGrad.addColorStop(0, '#edf4fa');
+        groundGrad.addColorStop(0.25, '#dbe9f3');
+        groundGrad.addColorStop(1, '#bcd6ea');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, horizonY, w, h - horizonY);
+
+        // Yer perspektivasi (chuqurlik chiziqlari)
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        for (let i = 1; i <= 6; i++) {
+            const py = horizonY + Math.pow(i / 6, 2.2) * (h - horizonY);
+            ctx.beginPath();
+            ctx.moveTo(0, py);
+            ctx.lineTo(w, py);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    renderFirstPersonEntities(ctx, horizonY, p) {
+        const w = this.width;
+        const fov = 1.25; // ~72 daraja FOV
+        const projDist = (w / 2) / Math.tan(fov / 2);
+
+        const renderList = [];
+
+        // A. To'siqlar va Daraxtlar
+        for (let obs of this.obstacles) {
+            const dx = obs.x - p.x;
+            const dy = obs.y - p.y;
+            const distFwd = dx * Math.cos(p.angle) + dy * Math.sin(p.angle);
+            const distSide = -dx * Math.sin(p.angle) + dy * Math.cos(p.angle);
+            if (distFwd < 10) continue;
+
+            const screenX = (w / 2) + (distSide / distFwd) * projDist;
+            const scale = projDist / distFwd;
+            const screenY = horizonY + scale * 16;
+
+            if (screenX > -scale * 200 && screenX < w + scale * 200) {
+                renderList.push({ type: 'obstacle', data: obs, dist: distFwd, screenX, screenY, scale });
+            }
+        }
+
+        // B. Boshqa O'yinchilar va Botlar
+        for (let [id, otherP] of this.players) {
+            if (id === p.id) continue;
+            const dx = otherP.x - p.x;
+            const dy = otherP.y - p.y;
+            const distFwd = dx * Math.cos(p.angle) + dy * Math.sin(p.angle);
+            const distSide = -dx * Math.sin(p.angle) + dy * Math.cos(p.angle);
+            if (distFwd < 8) continue;
+
+            const screenX = (w / 2) + (distSide / distFwd) * projDist;
+            const scale = projDist / distFwd;
+            const screenY = horizonY + scale * 16;
+
+            if (screenX > -scale * 140 && screenX < w + scale * 140) {
+                renderList.push({ type: 'player', data: otherP, dist: distFwd, screenX, screenY, scale });
+            }
+        }
+
+        // C. Uchayotgan Qor to'plari
+        for (let sb of this.snowballs) {
+            const dx = sb.x - p.x;
+            const dy = sb.y - p.y;
+            const distFwd = dx * Math.cos(p.angle) + dy * Math.sin(p.angle);
+            const distSide = -dx * Math.sin(p.angle) + dy * Math.cos(p.angle);
+            if (distFwd < 5) continue;
+
+            const screenX = (w / 2) + (distSide / distFwd) * projDist;
+            const scale = projDist / distFwd;
+            const screenY = horizonY - scale * 3;
+
+            renderList.push({ type: 'snowball', data: sb, dist: distFwd, screenX, screenY, scale });
+        }
+
+        // D. Yerdagi Oltin Tangalar
+        for (let coin of this.groundCoins) {
+            if (coin.isCollected) continue;
+            const dx = coin.x - p.x;
+            const dy = coin.y - p.y;
+            const distFwd = dx * Math.cos(p.angle) + dy * Math.sin(p.angle);
+            const distSide = -dx * Math.sin(p.angle) + dy * Math.cos(p.angle);
+            if (distFwd < 10) continue;
+
+            const screenX = (w / 2) + (distSide / distFwd) * projDist;
+            const scale = projDist / distFwd;
+            const screenY = horizonY + scale * 18;
+
+            renderList.push({ type: 'coin', data: coin, dist: distFwd, screenX, screenY, scale });
+        }
+
+        // Eng uzoqdagidan eng yaqindagiga qarab chizish (Painter's Algorithm)
+        renderList.sort((a, b) => b.dist - a.dist);
+
+        for (let item of renderList) {
+            if (item.type === 'obstacle') {
+                this.draw3DObstacle(ctx, item.data, item.screenX, item.screenY, item.scale);
+            } else if (item.type === 'player') {
+                this.draw3DPlayer(ctx, item.data, item.screenX, item.screenY, item.scale);
+            } else if (item.type === 'snowball') {
+                this.draw3DSnowball(ctx, item.data, item.screenX, item.screenY, item.scale);
+            } else if (item.type === 'coin') {
+                this.draw3DCoin(ctx, item.data, item.screenX, item.screenY, item.scale);
+            }
+        }
+    }
+
+    draw3DPlayer(ctx, otherP, screenX, screenY, scale) {
+        ctx.save();
+        const baseW = 44 * scale;
+        const baseH = 80 * scale;
+
+        // Soya
+        ctx.fillStyle = 'rgba(0, 20, 40, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(screenX, screenY, baseW * 0.65, baseW * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (otherP.isDead) {
+            // Muzlagan Qor Odam / Haykal
+            ctx.fillStyle = 'rgba(180, 225, 255, 0.9)';
+            ctx.strokeStyle = '#70d6ff';
+            ctx.lineWidth = 2 * scale;
+            ctx.beginPath();
+            ctx.arc(screenX, screenY - baseH * 0.35, baseW * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(screenX, screenY - baseH * 0.7, baseW * 0.36, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.max(10, 13 * scale)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('⛄ MUZLADI', screenX, screenY - baseH * 0.95);
+            ctx.restore();
+            return;
+        }
+
+        // Qadam animatsiyasi
+        const legSwing = Math.sin(otherP.walkCycle || 0) * (14 * scale);
+
+        // 1. Oyoqlar (Voxel boots)
+        ctx.fillStyle = '#1c2536';
+        ctx.fillRect(screenX - baseW * 0.38, screenY - baseH * 0.32 + legSwing, baseW * 0.32, baseH * 0.32);
+        ctx.fillRect(screenX + baseW * 0.06, screenY - baseH * 0.32 - legSwing, baseW * 0.32, baseH * 0.32);
+
+        // 2. Tana (Voxel ko'ylak / po'stin)
+        const teamColor = otherP.team === 'blue' ? '#4cc9f0' : (otherP.team === 'red' ? '#ff4d6d' : (otherP.color || '#e63946'));
+        ctx.fillStyle = teamColor;
+        ctx.fillRect(screenX - baseW * 0.42, screenY - baseH * 0.72, baseW * 0.84, baseH * 0.42);
+
+        // Oq mo'yna hoshiya
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(screenX - baseW * 0.06, screenY - baseH * 0.72, baseW * 0.12, baseH * 0.42);
+        ctx.fillRect(screenX - baseW * 0.44, screenY - baseH * 0.35, baseW * 0.88, baseH * 0.07);
+
+        // 3. Qo'llar
+        ctx.fillStyle = teamColor;
+        ctx.fillRect(screenX - baseW * 0.65, screenY - baseH * 0.68 - legSwing * 0.5, baseW * 0.22, baseH * 0.35);
+        ctx.fillRect(screenX + baseW * 0.43, screenY - baseH * 0.68 + legSwing * 0.5, baseW * 0.22, baseH * 0.35);
+
+        // Qo'ldagi qor to'pi
+        if (otherP.snowballs > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(screenX + baseW * 0.54, screenY - baseH * 0.48 + legSwing * 0.5, baseW * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 4. Bosh (Voxel yuz)
+        ctx.fillStyle = '#ffd166';
+        ctx.fillRect(screenX - baseW * 0.32, screenY - baseH * 1.05, baseW * 0.64, baseH * 0.34);
+
+        // Ko'zlar
+        ctx.fillStyle = '#061120';
+        ctx.fillRect(screenX - baseW * 0.2, screenY - baseH * 0.92, baseW * 0.12, baseH * 0.1);
+        ctx.fillRect(screenX + baseW * 0.08, screenY - baseH * 0.92, baseW * 0.12, baseH * 0.1);
+
+        // Qishki qalpoq (Santa shapka)
+        ctx.fillStyle = teamColor;
+        ctx.fillRect(screenX - baseW * 0.36, screenY - baseH * 1.18, baseW * 0.72, baseH * 0.14);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(screenX - baseW * 0.4, screenY - baseH * 1.07, baseW * 0.8, baseH * 0.08);
+        ctx.beginPath();
+        ctx.arc(screenX + baseW * 0.36, screenY - baseH * 1.2, baseW * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Qalqon (Frost Shield) aurasini chizish
+        if (otherP.shield > 0) {
+            ctx.strokeStyle = '#00f5d4';
+            ctx.lineWidth = 3 * scale;
+            ctx.strokeRect(screenX - baseW * 0.5, screenY - baseH * 1.22, baseW, baseH * 1.25);
+        }
+
+        // 5. Tepasidagi Health Bar va Nomi
+        const barW = Math.max(48, 65 * scale);
+        const barH = Math.max(5, 7 * scale);
+        const barY = screenY - baseH * 1.28;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillRect(screenX - barW / 2 - 2, barY - 2, barW + 4, barH + 4);
+
+        const hpPct = Math.max(0, Math.min(1, otherP.hp / (otherP.maxHp || 100)));
+        ctx.fillStyle = hpPct > 0.4 ? '#06d6a0' : '#ff3366';
+        ctx.fillRect(screenX - barW / 2, barY, barW * hpPct, barH);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(10, Math.round(12 * scale))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(otherP.name, screenX, barY - 4);
+
+        ctx.restore();
+    }
+
+    draw3DObstacle(ctx, obs, screenX, screenY, scale) {
+        ctx.save();
+        const r = (obs.radius || 30) * scale;
+
+        if (obs.type === 'grand_tree' || obs.type === 'tree') {
+            // Soya
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(screenX, screenY, r * 1.1, r * 0.35, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Daraxt tanasi
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(screenX - r * 0.2, screenY - r * 0.7, r * 0.4, r * 0.7);
+
+            // 3 qavat qorli archa shoxlari
+            const layers = [
+                { yOff: -r * 0.6, width: r * 2.2, height: r * 1.1, color: '#166e48' },
+                { yOff: -r * 1.4, width: r * 1.7, height: r * 0.95, color: '#1a8256' },
+                { yOff: -r * 2.1, width: r * 1.2, height: r * 0.85, color: '#1f9865' }
+            ];
+
+            for (let l of layers) {
+                // Yashil archa
+                ctx.fillStyle = l.color;
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY + l.yOff - l.height);
+                ctx.lineTo(screenX + l.width / 2, screenY + l.yOff);
+                ctx.lineTo(screenX - l.width / 2, screenY + l.yOff);
+                ctx.closePath();
+                ctx.fill();
+
+                // Oq qor qatlami
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(screenX, screenY + l.yOff - l.height);
+                ctx.lineTo(screenX + l.width * 0.35, screenY + l.yOff - l.height * 0.28);
+                ctx.lineTo(screenX - l.width * 0.35, screenY + l.yOff - l.height * 0.28);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Katta bayram archasi uchun yulduz va chiroqlar
+            if (obs.type === 'grand_tree') {
+                ctx.fillStyle = '#ffd166';
+                ctx.font = `${Math.max(14, Math.round(24 * scale))}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText('⭐', screenX, screenY - r * 3.0);
+            }
+        } else if (obs.type === 'snowman') {
+            // Soya
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(screenX, screenY, r * 1.1, r * 0.35, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pastki sharcha
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#cde2ee';
+            ctx.lineWidth = 2 * scale;
+            ctx.beginPath();
+            ctx.arc(screenX, screenY - r * 0.7, r * 0.75, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Bosh sharchasi
+            ctx.beginPath();
+            ctx.arc(screenX, screenY - r * 1.7, r * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Sabzi burni
+            ctx.fillStyle = '#f77f00';
+            ctx.beginPath();
+            ctx.moveTo(screenX, screenY - r * 1.7);
+            ctx.lineTo(screenX + r * 0.45, screenY - r * 1.65);
+            ctx.lineTo(screenX, screenY - r * 1.6);
+            ctx.fill();
+
+            // Qora shlyapa
+            ctx.fillStyle = '#1c2536';
+            ctx.fillRect(screenX - r * 0.45, screenY - r * 2.2, r * 0.9, r * 0.14);
+            ctx.fillRect(screenX - r * 0.3, screenY - r * 2.65, r * 0.6, r * 0.48);
+        } else {
+            // Boshqa to'siqlar (devor, muz, sovg'a)
+            ctx.fillStyle = 'rgba(112, 214, 255, 0.75)';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2 * scale;
+            ctx.fillRect(screenX - r, screenY - r * 1.5, r * 2, r * 1.5);
+            ctx.strokeRect(screenX - r, screenY - r * 1.5, r * 2, r * 1.5);
+        }
+        ctx.restore();
+    }
+
+    draw3DSnowball(ctx, sb, screenX, screenY, scale) {
+        ctx.save();
+        const r = Math.max(4, (sb.radius || 8.5) * scale * 1.3);
+
+        // Yorqin qor sharchasi
+        const ballGrad = ctx.createRadialGradient(screenX - r * 0.3, screenY - r * 0.3, r * 0.2, screenX, screenY, r);
+        ballGrad.addColorStop(0, '#ffffff');
+        ballGrad.addColorStop(0.7, '#e0f4ff');
+        ballGrad.addColorStop(1, '#a8dadc');
+
+        ctx.fillStyle = ballGrad;
+        ctx.shadowColor = '#70d6ff';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    draw3DCoin(ctx, coin, screenX, screenY, scale) {
+        ctx.save();
+        const r = Math.max(6, 12 * scale);
+        const bounce = Math.sin(coin.pulse) * (8 * scale);
+
+        // Soya
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(screenX, screenY, r * 0.9, r * 0.35, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Oltin tanga
+        ctx.fillStyle = '#ffd166';
+        ctx.strokeStyle = '#e09f3e';
+        ctx.lineWidth = 2 * scale;
+        ctx.beginPath();
+        ctx.arc(screenX, screenY - bounce, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(8, Math.round(11 * scale))}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', screenX, screenY - bounce);
+        ctx.restore();
+    }
+
+    renderFirstPersonSnowflakes(ctx, horizonY) {
+        ctx.save();
+        ctx.fillStyle = '#ffffff';
+        for (let flake of this.snowflakes) {
+            ctx.beginPath();
+            ctx.arc(flake.x, flake.y, flake.radius * 1.1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
+    // =======================================================
+    // 4. OLDINGI QATORDAGI VOXEL QO'L VA QOR QUROLI (Rasmdagidek)
+    // =======================================================
+    renderFirstPersonGun(ctx, p) {
+        ctx.save();
+        const w = this.width;
+        const h = this.height;
+
+        // Qadam tebranishi (Bobbing)
+        const walkBobX = p.isMoving ? Math.sin(p.walkCycle) * 12 : 0;
+        const walkBobY = p.isMoving ? Math.abs(Math.cos(p.walkCycle)) * 10 : 0;
+
+        // Otishdagi orqaga zarba (Recoil Kickback)
+        const recoilX = this.gunRecoil * 22;
+        const recoilY = this.gunRecoil * 36;
+        const recoilAngle = -this.gunRecoil * 0.22;
+
+        const gunOriginX = w * 0.72 + walkBobX + recoilX;
+        const gunOriginY = h * 0.82 + walkBobY + recoilY;
+
+        ctx.translate(gunOriginX, gunOriginY);
+        ctx.rotate(recoilAngle);
+
+        const suitColor = p.color || '#e63946';
+
+        // 1. QIZIL PO'STIN YENG / QO'L (Rasmdagi Voxel qizil kiyim)
+        ctx.save();
+        // Pastki qorong'i soya qatlami
+        ctx.fillStyle = '#8b0000';
+        ctx.beginPath();
+        ctx.moveTo(w * 0.28, h * 0.35);
+        ctx.lineTo(-w * 0.05, h * 0.05);
+        ctx.lineTo(-w * 0.01, h * 0.16);
+        ctx.lineTo(w * 0.28, h * 0.42);
+        ctx.closePath();
+        ctx.fill();
+
+        // Asosiy qizil yeng bloki
+        ctx.fillStyle = suitColor;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.26, h * 0.32);
+        ctx.lineTo(-w * 0.06, -h * 0.04);
+        ctx.lineTo(-w * 0.02, h * 0.08);
+        ctx.lineTo(w * 0.28, h * 0.38);
+        ctx.closePath();
+        ctx.fill();
+
+        // Oq mo'yna manjet (Fluffy White Fur Cuff)
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#e2eafc';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(-w * 0.05, 0, 32, 45, -0.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Qo'lqopli barmoqlar (Grip hand)
+        ctx.fillStyle = '#ffd166';
+        ctx.beginPath();
+        ctx.roundRect(-w * 0.08, -25, 36, 40, 8);
+        ctx.fill();
+        ctx.restore();
+
+        // 2. QOR QUROLI (Heavy Voxel Snowball Blaster / Cannon)
+        ctx.save();
+        // Asosiy metall korpus (Receiver body)
+        ctx.fillStyle = '#2b2d42';
+        ctx.fillRect(-w * 0.16, -42, w * 0.15, 52);
+
+        // Metall nurlanish va qirralar
+        ctx.fillStyle = '#4a4e69';
+        ctx.fillRect(-w * 0.16, -42, w * 0.15, 10);
+
+        // Neon quvvat chizig'i (Cyan Energy Strip)
+        ctx.fillStyle = '#06d6a0';
+        ctx.shadowColor = '#06d6a0';
+        ctx.shadowBlur = 10;
+        ctx.fillRect(-w * 0.14, -20, w * 0.11, 6);
+        ctx.shadowBlur = 0;
+
+        // Qurol stvoli (Barrel)
+        ctx.fillStyle = '#1c1d24';
+        ctx.fillRect(-w * 0.26, -34, w * 0.11, 36);
+
+        // Stvol uchi (Muzzle ring)
+        ctx.fillStyle = '#70d6ff';
+        ctx.fillRect(-w * 0.28, -38, 14, 44);
+
+        // 3. QOR TO'PI O'RNI (Chamber / Cradle)
+        if (p.snowballs > 0) {
+            // Qurol ustidagi tayyor qor to'pi (Rasmdagi tayyor o'q)
+            ctx.save();
+            const ballRadius = 26;
+            const ballGrad = ctx.createRadialGradient(-w * 0.12, -54, 4, -w * 0.12, -54, ballRadius);
+            ballGrad.addColorStop(0, '#ffffff');
+            ballGrad.addColorStop(0.65, '#edf6f9');
+            ballGrad.addColorStop(1, '#83c5be');
+
+            ctx.fillStyle = ballGrad;
+            ctx.shadowColor = '#70d6ff';
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.arc(-w * 0.12, -52, ballRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Muzli yaltiroq uchqun
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('✨', -w * 0.12 - 8, -52);
+            ctx.restore();
+        } else if (p.isCrafting) {
+            // Qor yasash aylanma ajoyib animatsiyasi
+            ctx.save();
+            const craftProg = p.craftProgress / p.craftDuration;
+            ctx.strokeStyle = '#06d6a0';
+            ctx.lineWidth = 5;
+            ctx.shadowColor = '#06d6a0';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(-w * 0.12, -52, 24, 0, Math.PI * 2 * craftProg);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('❄️ YASALMOQDA', -w * 0.12, -50);
+            ctx.restore();
+        } else {
+            // Bo'sh xolati
+            ctx.fillStyle = 'rgba(255, 51, 102, 0.4)';
+            ctx.fillRect(-w * 0.16, -58, 38, 14);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText('BO\'SH', -w * 0.14, -48);
+        }
+
+        // 4. OTISH CHAQNASHI (Muzzle Flash)
+        if (this.gunMuzzleFlash > 0) {
+            ctx.save();
+            ctx.translate(-w * 0.28, -16);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#70d6ff';
+            ctx.shadowBlur = 25;
+
+            // 4 burchakli yorqin yulduzcha chaqnashi
+            for (let i = 0; i < 4; i++) {
+                ctx.rotate(Math.PI / 4);
+                ctx.fillRect(-35, -5, 70, 10);
+            }
+            ctx.restore();
+        }
+
+        ctx.restore();
+        ctx.restore();
+    }
+
+    // =======================================================
+    // 5. RETRO 1-LITSO HUD (❤️ Yurak, 1 | 20 Hisob, Krosshayr)
+    // =======================================================
+    renderFirstPersonHUD(ctx, p) {
+        ctx.save();
+        const w = this.width;
+        const h = this.height;
+
+        // A. O'rtadagi nishon (Crosshair)
+        const cx = w / 2;
+        const cy = h / 2;
+
+        // Dushman yaqinligini tekshirish (krosshayr qizil rangga kirishi uchun)
+        let aimingAtEnemy = false;
+        for (let [id, otherP] of this.players) {
+            if (id === p.id || otherP.isDead) continue;
+            if ((this.gameMode === '2v2' || this.gameMode === '4v4') && otherP.team === p.team) continue;
+            const dx = otherP.x - p.x;
+            const dy = otherP.y - p.y;
+            const distFwd = dx * Math.cos(p.angle) + dy * Math.sin(p.angle);
+            const distSide = -dx * Math.sin(p.angle) + dy * Math.cos(p.angle);
+            if (distFwd > 15 && Math.abs(distSide) < 35) {
+                aimingAtEnemy = true;
+                break;
+            }
+        }
+
+        const chColor = aimingAtEnemy ? '#ff3366' : '#ffffff';
+        const chSize = aimingAtEnemy ? 14 : 18;
+        const chGap = aimingAtEnemy ? 4 : 6;
+
+        ctx.strokeStyle = chColor;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = chColor;
+        ctx.shadowBlur = aimingAtEnemy ? 12 : 4;
+
+        // Yuqori, pastki, chap, o'ng chiziqlar
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - chGap); ctx.lineTo(cx, cy - chGap - chSize);
+        ctx.moveTo(cx, cy + chGap); ctx.lineTo(cx, cy + chGap + chSize);
+        ctx.moveTo(cx - chGap, cy); ctx.lineTo(cx - chGap - chSize, cy);
+        ctx.moveTo(cx + chGap, cy); ctx.lineTo(cx + chGap + chSize, cy);
+        ctx.stroke();
+
+        // Markaziy nuqta
+        ctx.fillStyle = chColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // B. Chap Yuqoridagi Retro Pixel ❤️ Yurak va HP (Rasmdagidek)
+        ctx.save();
+        const heartX = 28;
+        const heartY = 75;
+
+        // Pixel Yurakcha ❤️
+        ctx.fillStyle = '#ff0055';
+        ctx.shadowColor = '#ff0055';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(heartX, heartY + 10);
+        ctx.bezierCurveTo(heartX, heartY, heartX - 16, heartY, heartX - 16, heartY + 16);
+        ctx.bezierCurveTo(heartX - 16, heartY + 28, heartX, heartY + 38, heartX, heartY + 44);
+        ctx.bezierCurveTo(heartX, heartY + 38, heartX + 16, heartY + 28, heartX + 16, heartY + 16);
+        ctx.bezierCurveTo(heartX + 16, heartY, heartX, heartY, heartX, heartY + 10);
+        ctx.fill();
+
+        // Katta qalin HP raqami (Rasmdagi 99 / 100)
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 6;
+        ctx.font = '900 34px "Fredoka One", sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.max(0, p.hp)}`, heartX + 28, heartY + 20);
+
+        if (p.shield > 0) {
+            ctx.fillStyle = '#00f5d4';
+            ctx.font = '800 16px sans-serif';
+            ctx.fillText(`🛡️ +${p.shield}`, heartX + 28, heartY + 46);
+        }
+        ctx.restore();
+
+        // C. O'ng Yuqoridagi Sariq Raqamli Match Hisobi (Rasmdagi 1 | 20 dek)
+        ctx.save();
+        ctx.fillStyle = '#ffd166';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 10;
+        ctx.font = '900 36px "Fredoka One", monospace, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${this.blueScore} | ${this.redScore}`, w - 30, 80);
+        ctx.restore();
+
+        // D. Qurol yonidagi Qor to'plari soni
+        ctx.save();
+        ctx.fillStyle = 'rgba(8, 20, 38, 0.85)';
+        ctx.strokeStyle = '#70d6ff';
+        ctx.lineWidth = 1.5;
+        const ammoX = w - 160;
+        const ammoY = h - 45;
+        ctx.beginPath();
+        ctx.roundRect(ammoX, ammoY, 135, 34, 17);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`❄️ QOR: ${p.snowballs} / ${p.maxSnowballs}`, ammoX + 68, ammoY + 17);
+        ctx.restore();
+
+        ctx.restore();
     }
 
     renderTerrain(ctx) {
