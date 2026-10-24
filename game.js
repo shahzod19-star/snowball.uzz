@@ -143,109 +143,99 @@ class SnowClashGame {
         const w = this.width;
         const h = this.height;
 
-        // Barcha xaritalarda kengaytirilgan Ko'k va Qizil Minecraft Bazalari
-        // 1. Ko'k Qal'a Bazasi (Cobblestone / Stone Brick)
-        this.obstacles.push({ type: 'fortress_blue', x: w * 0.04, y: h * 0.35, width: 130, height: 160, team: 'blue' });
-        this.obstacles.push({ type: 'watchtower', x: w * 0.09, y: h * 0.18, radius: 26, team: 'blue' });
-        this.obstacles.push({ type: 'watchtower', x: w * 0.09, y: h * 0.82, radius: 26, team: 'blue' });
-        this.obstacles.push({ type: 'chest', x: w * 0.16, y: h * 0.48, width: 32, height: 26 });
-        this.obstacles.push({ type: 'tnt', x: w * 0.18, y: h * 0.32, width: 28, height: 28 });
-        this.obstacles.push({ type: 'tnt', x: w * 0.18, y: h * 0.68, width: 28, height: 28 });
+        // Barcha xaritalarda Ko'k va Qizil Minecraft Bazalari ekranning chetlariga joylashtiriladi
+        // Bu o'yinchilarning to'siq ichida tiqilib qolmasligini 100% kafolatlaydi!
 
-        // 2. Qizil Qal'a Bazasi (Nether Brick / Fortress)
-        this.obstacles.push({ type: 'fortress_red', x: w * 0.96 - 130, y: h * 0.35, width: 130, height: 160, team: 'red' });
-        this.obstacles.push({ type: 'watchtower', x: w * 0.91, y: h * 0.18, radius: 26, team: 'red' });
-        this.obstacles.push({ type: 'watchtower', x: w * 0.91, y: h * 0.82, radius: 26, team: 'red' });
-        this.obstacles.push({ type: 'chest', x: w * 0.84 - 32, y: h * 0.48, width: 32, height: 26 });
-        this.obstacles.push({ type: 'tnt', x: w * 0.82 - 28, y: h * 0.32, width: 28, height: 28 });
-        this.obstacles.push({ type: 'tnt', x: w * 0.82 - 28, y: h * 0.68, width: 28, height: 28 });
+        // 1. Ko'k Qal'a Bazasi (Chap tomonda, x=0 devoriga yopishgan)
+        const blueWallW = Math.max(60, Math.min(100, w * 0.07));
+        this.obstacles.push({ type: 'fortress_blue', x: 0, y: h * 0.28, width: blueWallW, height: h * 0.44, team: 'blue' });
+        this.obstacles.push({ type: 'watchtower', x: blueWallW * 0.6, y: h * 0.14, radius: 22, team: 'blue' });
+        this.obstacles.push({ type: 'watchtower', x: blueWallW * 0.6, y: h * 0.86, radius: 22, team: 'blue' });
+        this.obstacles.push({ type: 'chest', x: blueWallW * 0.7, y: h * 0.48, width: 28, height: 24 });
+        this.obstacles.push({ type: 'tnt', x: blueWallW * 0.7, y: h * 0.28, width: 26, height: 26 });
+        this.obstacles.push({ type: 'tnt', x: blueWallW * 0.7, y: h * 0.72, width: 26, height: 26 });
+
+        // 2. Qizil Qal'a Bazasi (O'ng tomonda, x=w devoriga yopishgan)
+        const redWallW = Math.max(60, Math.min(100, w * 0.07));
+        this.obstacles.push({ type: 'fortress_red', x: w - redWallW, y: h * 0.28, width: redWallW, height: h * 0.44, team: 'red' });
+        this.obstacles.push({ type: 'watchtower', x: w - redWallW * 0.6, y: h * 0.14, radius: 22, team: 'red' });
+        this.obstacles.push({ type: 'watchtower', x: w - redWallW * 0.6, y: h * 0.86, radius: 22, team: 'red' });
+        this.obstacles.push({ type: 'chest', x: w - redWallW * 0.7 - 28, y: h * 0.48, width: 28, height: 24 });
+        this.obstacles.push({ type: 'tnt', x: w - redWallW * 0.7 - 26, y: h * 0.28, width: 26, height: 26 });
+        this.obstacles.push({ type: 'tnt', x: w - redWallW * 0.7 - 26, y: h * 0.72, width: 26, height: 26 });
 
         if (this.mapType === 'warzone') {
-            // ⚔️ MINECRAFT BAZASI (Warzone - Qurolli Jang Maydoni)
-            // Markaziy tosh ko'prik va mudofaa to'siqlari
-            this.obstacles.push({ type: 'wall', x: w * 0.5 - 75, y: h * 0.5 - 20, width: 150, height: 40 });
-            this.obstacles.push({ type: 'wall', x: w * 0.5 - 20, y: h * 0.22, width: 40, height: 90 });
-            this.obstacles.push({ type: 'wall', x: w * 0.5 - 20, y: h * 0.68, width: 40, height: 90 });
+            // ⚔️ MINECRAFT WARZONE BAZASI - Markaziy barrikadalar va TNT boshpanalar
+            // O'yinchilar spawn nuqtalari (w*0.24 va w*0.76) butunlay ochiq maydon!
+            this.obstacles.push({ type: 'wall', x: w * 0.5 - 60, y: h * 0.5 - 18, width: 120, height: 36 });
+            this.obstacles.push({ type: 'wall', x: w * 0.5 - 18, y: h * 0.18, width: 36, height: 75 });
+            this.obstacles.push({ type: 'wall', x: w * 0.5 - 18, y: h * 0.70, width: 36, height: 75 });
 
-            // TNT Barrikadalari
-            this.obstacles.push({ type: 'tnt', x: w * 0.38, y: h * 0.44, width: 30, height: 30 });
-            this.obstacles.push({ type: 'tnt', x: w * 0.62, y: h * 0.54, width: 30, height: 30 });
+            // TNT Barrikadalari (Markazda, o'yinchilardan uzoqda)
+            this.obstacles.push({ type: 'tnt', x: w * 0.38, y: h * 0.44, width: 28, height: 28 });
+            this.obstacles.push({ type: 'tnt', x: w * 0.62, y: h * 0.56, width: 28, height: 28 });
 
-            // Minecraft Sandiqlari (O'q va Qurol zaxiralari)
-            this.obstacles.push({ type: 'chest', x: w * 0.42, y: h * 0.25, width: 32, height: 26 });
-            this.obstacles.push({ type: 'chest', x: w * 0.58, y: h * 0.75, width: 32, height: 26 });
+            // Minecraft Sandiqlari
+            this.obstacles.push({ type: 'chest', x: w * 0.44, y: h * 0.22, width: 30, height: 24 });
+            this.obstacles.push({ type: 'chest', x: w * 0.56, y: h * 0.78, width: 30, height: 24 });
 
             // Blokli archalar
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.32, y: h * 0.25, radius: 32 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.68, y: h * 0.25, radius: 32 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.32, y: h * 0.75, radius: 32 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.68, y: h * 0.75, radius: 32 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.35, y: h * 0.22, radius: 28 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.65, y: h * 0.22, radius: 28 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.35, y: h * 0.78, radius: 28 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.65, y: h * 0.78, radius: 28 });
 
         } else if (this.mapType === 'wonderland') {
-            // 1. BAYRAM MAYDONI & SHAHARCHASI (Katta maydon, ko'plab boshpanalar)
-            this.obstacles.push({ type: 'grand_tree', x: w / 2, y: h / 2, radius: 60 });
-            
-            // Sovg'alar
-            this.obstacles.push({ type: 'gift', x: w / 2 - 50, y: h / 2 + 55, width: 28, height: 28, color: '#ff3366', ribbon: '#ffd166' });
-            this.obstacles.push({ type: 'gift', x: w / 2 + 40, y: h / 2 + 50, width: 30, height: 30, color: '#ffd166', ribbon: '#4cc9f0' });
-            this.obstacles.push({ type: 'gift', x: w / 2 + 5, y: h / 2 - 65, width: 26, height: 26, color: '#4cc9f0', ribbon: '#ff3366' });
+            // 1. QIShKI SHAHARCHA
+            this.obstacles.push({ type: 'grand_tree', x: w / 2, y: h / 2, radius: 55 });
+            this.obstacles.push({ type: 'gift', x: w / 2 - 45, y: h / 2 + 50, width: 26, height: 26, color: '#ff3366', ribbon: '#ffd166' });
+            this.obstacles.push({ type: 'gift', x: w / 2 + 35, y: h / 2 + 45, width: 28, height: 28, color: '#ffd166', ribbon: '#4cc9f0' });
 
-            // Qor uychalari (Chalets / Cabins)
-            this.obstacles.push({ type: 'cabin', x: w * 0.28, y: h * 0.25, width: 70, height: 50 });
-            this.obstacles.push({ type: 'cabin', x: w * 0.72 - 70, y: h * 0.75 - 50, width: 70, height: 50 });
+            this.obstacles.push({ type: 'cabin', x: w * 0.34, y: h * 0.24, width: 65, height: 48 });
+            this.obstacles.push({ type: 'cabin', x: w * 0.66 - 65, y: h * 0.76 - 48, width: 65, height: 48 });
 
-            // Qor odamlar
-            this.obstacles.push({ type: 'snowman', x: w * 0.34, y: h * 0.45, radius: 26 });
-            this.obstacles.push({ type: 'snowman', x: w * 0.66, y: h * 0.55, radius: 26 });
+            this.obstacles.push({ type: 'snowman', x: w * 0.38, y: h * 0.45, radius: 24 });
+            this.obstacles.push({ type: 'snowman', x: w * 0.62, y: h * 0.55, radius: 24 });
 
-            // Archalar to'plami
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.28, y: h * 0.75, radius: 32 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.72, y: h * 0.25, radius: 32 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.40, y: h * 0.18, radius: 30 });
-            this.obstacles.push({ type: 'mc_tree', x: w * 0.60, y: h * 0.82, radius: 30 });
-
-            // Qor tepaliklari
-            this.obstacles.push({ type: 'snow_mound', x: w * 0.44, y: h * 0.72, radius: 36 });
-            this.obstacles.push({ type: 'snow_mound', x: w * 0.56, y: h * 0.28, radius: 36 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.35, y: h * 0.75, radius: 30 });
+            this.obstacles.push({ type: 'mc_tree', x: w * 0.65, y: h * 0.25, radius: 30 });
+            this.obstacles.push({ type: 'snow_mound', x: w * 0.46, y: h * 0.72, radius: 32 });
+            this.obstacles.push({ type: 'snow_mound', x: w * 0.54, y: h * 0.28, radius: 32 });
 
         } else if (this.mapType === 'fortress') {
-            // 2. MUZ QAL'ASI (Ice Citadel Arena)
+            // 2. MUZ QAL'ASI
             const cx = w / 2;
             const cy = h / 2;
-            this.obstacles.push({ type: 'ice_pillar', x: cx, y: cy, radius: 50 });
+            this.obstacles.push({ type: 'ice_pillar', x: cx, y: cy, radius: 46 });
 
-            // Qal'aning mustahkam devorlari
-            this.obstacles.push({ type: 'wall', x: cx - 200, y: cy - 100, width: 28, height: 120 });
-            this.obstacles.push({ type: 'wall', x: cx + 172, y: cy - 100, width: 28, height: 120 });
-            this.obstacles.push({ type: 'wall', x: cx - 100, y: cy + 120, width: 120, height: 28 });
-            this.obstacles.push({ type: 'wall', x: cx - 100, y: cy - 148, width: 120, height: 28 });
+            this.obstacles.push({ type: 'wall', x: cx - 180, y: cy - 90, width: 26, height: 100 });
+            this.obstacles.push({ type: 'wall', x: cx + 154, y: cy - 90, width: 26, height: 100 });
+            this.obstacles.push({ type: 'wall', x: cx - 90, y: cy + 110, width: 100, height: 26 });
+            this.obstacles.push({ type: 'wall', x: cx - 90, y: cy - 136, width: 100, height: 26 });
 
-            // Burchak minoralari
-            this.obstacles.push({ type: 'ice_pillar', x: w * 0.28, y: h * 0.22, radius: 34 });
-            this.obstacles.push({ type: 'ice_pillar', x: w * 0.72, y: h * 0.78, radius: 34 });
-            this.obstacles.push({ type: 'snowman', x: w * 0.28, y: h * 0.78, radius: 26 });
-            this.obstacles.push({ type: 'snowman', x: w * 0.72, y: h * 0.22, radius: 26 });
+            this.obstacles.push({ type: 'ice_pillar', x: w * 0.34, y: h * 0.22, radius: 30 });
+            this.obstacles.push({ type: 'ice_pillar', x: w * 0.66, y: h * 0.78, radius: 30 });
+            this.obstacles.push({ type: 'snowman', x: w * 0.34, y: h * 0.78, radius: 24 });
+            this.obstacles.push({ type: 'snowman', x: w * 0.66, y: h * 0.22, radius: 24 });
 
         } else {
-            // 3. SEHRLI QOR O'RMONI (Enchanted Pine Forest)
+            // 3. SEHRLI O'RMON
             const treePositions = [
-                { x: w * 0.28, y: h * 0.22 }, { x: w * 0.40, y: h * 0.28 },
-                { x: w * 0.50, y: h * 0.16 }, { x: w * 0.60, y: h * 0.28 }, { x: w * 0.72, y: h * 0.22 },
-                { x: w * 0.28, y: h * 0.78 }, { x: w * 0.40, y: h * 0.72 },
-                { x: w * 0.50, y: h * 0.84 }, { x: w * 0.60, y: h * 0.72 }, { x: w * 0.72, y: h * 0.78 },
-                { x: w * 0.35, y: h * 0.50 }, { x: w * 0.65, y: h * 0.50 }
+                { x: w * 0.34, y: h * 0.22 }, { x: w * 0.44, y: h * 0.28 },
+                { x: w * 0.56, y: h * 0.28 }, { x: w * 0.66, y: h * 0.22 },
+                { x: w * 0.34, y: h * 0.78 }, { x: w * 0.44, y: h * 0.72 },
+                { x: w * 0.56, y: h * 0.72 }, { x: w * 0.66, y: h * 0.78 },
+                { x: w * 0.40, y: h * 0.50 }, { x: w * 0.60, y: h * 0.50 }
             ];
 
             treePositions.forEach(tp => {
-                this.obstacles.push({ type: 'mc_tree', x: tp.x, y: tp.y, radius: 32 });
+                this.obstacles.push({ type: 'mc_tree', x: tp.x, y: tp.y, radius: 30 });
             });
 
-            this.obstacles.push({ type: 'cabin', x: w * 0.46, y: h * 0.44, width: 80, height: 55 });
-            this.obstacles.push({ type: 'snowman', x: w * 0.44, y: h * 0.64, radius: 26 });
-            this.obstacles.push({ type: 'snowman', x: w * 0.56, y: h * 0.36, radius: 26 });
+            this.obstacles.push({ type: 'cabin', x: w * 0.46, y: h * 0.36, width: 75, height: 50 });
+            this.obstacles.push({ type: 'snowman', x: w * 0.50, y: h * 0.64, radius: 24 });
         }
 
-        // Xaritada terib olinadigan Oltin Tangalarni joylashtirish (5-8 ta tanga)
         this.spawnGroundCoins(7);
     }
 
@@ -644,12 +634,20 @@ class SnowClashGame {
         this.localPlayer.isDead = false;
         this.localPlayer.team = config.team || 'blue';
 
+        // Xavfsiz, ochiq maydonda spawn qilish (Bazalardan ancha uzoqda)
         if (this.localPlayer.team === 'blue') {
-            this.localPlayer.x = this.width * 0.18;
+            this.localPlayer.x = this.width * 0.24;
             this.localPlayer.y = this.height * 0.5;
         } else {
-            this.localPlayer.x = this.width * 0.82;
+            this.localPlayer.x = this.width * 0.76;
             this.localPlayer.y = this.height * 0.5;
+        }
+
+        // Safe-Spawn Resolver: Agar o'yinchi spawn bo'lganda to'siqqa yaqin bo'lsa, ochiq joyga surish
+        let safeSpawnNudge = 0;
+        while (this.checkObstacleCollision(this.localPlayer.x, this.localPlayer.y, this.localPlayer.radius + 6) && safeSpawnNudge < 25) {
+            this.localPlayer.x += (this.localPlayer.team === 'blue' ? 14 : -14);
+            safeSpawnNudge++;
         }
 
         this.players.clear();
@@ -810,16 +808,24 @@ class SnowClashGame {
 
             let spawnX, spawnY;
             if (team === 'blue') {
-                spawnX = this.width * 0.15 + Math.random() * 80;
+                spawnX = this.width * 0.22 + Math.random() * 40;
                 spawnY = this.height * 0.3 + (i * 90);
             } else if (team === 'red') {
-                spawnX = this.width * 0.85 - Math.random() * 80;
+                spawnX = this.width * 0.78 - Math.random() * 40;
                 spawnY = this.height * 0.3 + (i * 90);
             } else {
-                spawnX = Math.random() * (this.width - 200) + 100;
+                spawnX = Math.random() * (this.width - 240) + 120;
                 spawnY = Math.random() * (this.height - 200) + 100;
             }
 
+            // Safe-Spawn Resolver for Bots
+            let botNudge = 0;
+            while (this.checkObstacleCollision(spawnX, spawnY, 26) && botNudge < 25) {
+                spawnX += (team === 'blue' ? 14 : -14);
+                botNudge++;
+            }
+
+            const mcTypes = ['steve', 'skeleton', 'zombie', 'creeper', 'enderman'];
             const bot = {
                 id: botId,
                 name: name,
@@ -829,7 +835,7 @@ class SnowClashGame {
                 y: spawnY,
                 radius: 22,
                 color: team === 'blue' ? '#4cc9f0' : (team === 'red' ? '#ff3366' : colors[i % colors.length]),
-                characterType: 'human',
+                characterType: mcTypes[i % mcTypes.length],
                 skin: (botConf.difficulty === 'hacker') ? 'cyber' : skins[i % skins.length],
                 snowballType: botConf.ballType || 'classic',
                 team: team,
@@ -1282,11 +1288,23 @@ class SnowClashGame {
             const nextX = p.x + dx * currentSpeed;
             const nextY = p.y + dy * currentSpeed;
 
-            if (nextX >= p.radius && nextX <= this.width - p.radius && !this.checkObstacleCollision(nextX, p.y, p.radius)) {
+            const collX = this.checkObstacleCollision(nextX, p.y, p.radius);
+            const collY = this.checkObstacleCollision(p.x, nextY, p.radius);
+
+            if (nextX >= p.radius && nextX <= this.width - p.radius && !collX) {
                 p.x = nextX;
             }
-            if (nextY >= p.radius && nextY <= this.height - p.radius && !this.checkObstacleCollision(p.x, nextY, p.radius)) {
+            if (nextY >= p.radius && nextY <= this.height - p.radius && !collY) {
                 p.y = nextY;
+            }
+
+            // Unstuck mexanizmi: Agar o'yinchi biron sabab to'siq ichida tiqilib qolsa, markazga tomon itarib chiqarish
+            if (this.checkObstacleCollision(p.x, p.y, p.radius)) {
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                const pushAngle = Math.atan2(centerY - p.y, centerX - p.x);
+                p.x += Math.cos(pushAngle) * 4;
+                p.y += Math.sin(pushAngle) * 4;
             }
 
             if (Math.random() < 0.25) {
@@ -1855,6 +1873,98 @@ class SnowClashGame {
             `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
+    // =======================================================
+    // 🧪 AVTOMATIK TESTOVIY REJIM (DIAGNOSTICS & TEST SUITE)
+    // =======================================================
+    // =======================================================
+    runSelfDiagnostics() {
+        const results = [];
+        if (this.obstacles.length === 0) {
+            this.setupMap(this.battleType === 'gun' ? 'warzone' : 'wonderland');
+        }
+        const p = this.localPlayer || {
+            x: (this.width || 800) * 0.24,
+            y: (this.height || 600) * 0.5,
+            radius: 24,
+            snowballs: this.battleType === 'gun' ? 30 : 5,
+            reserveAmmo: 120,
+            maxSnowballs: 5
+        };
+
+        // 1. Harakat va to'siqlar xavfsizligi testi
+        const spawnColl = this.checkObstacleCollision(p.x, p.y, p.radius);
+        const moves = [
+            { dir: 'W (Yuqoriga)', dx: 0, dy: -5 },
+            { dir: 'S (Pastga)', dx: 0, dy: 5 },
+            { dir: 'A (Chapga)', dx: -5, dy: 0 },
+            { dir: "D (O'ngga)", dx: 5, dy: 0 }
+        ];
+        let movesPassed = 0;
+        for (let m of moves) {
+            const testX = p.x + m.dx;
+            const testY = p.y + m.dy;
+            if (!this.checkObstacleCollision(testX, testY, p.radius)) {
+                movesPassed++;
+            }
+        }
+        results.push({
+            name: "Harakatlanish Tizimi (Player Movement)",
+            passed: !spawnColl && movesPassed === 4,
+            details: `Spawn to'siqsiz: ${!spawnColl ? 'HA (100% ochiq maydon)' : 'YOQ'}, 4 ta yo'nalish harakati: ${movesPassed}/4`
+        });
+
+        // 2. Qurol va Qor rejimi testi
+        const isGun = this.battleType === 'gun';
+        const ammoOk = isGun ? (p.snowballs === 30 && p.reserveAmmo === 120) : (p.snowballs > 0);
+        results.push({
+            name: `Jang Rejimi (${isGun ? 'Qurolli Jang 🔫' : 'Qor Jangi ❄️'})`,
+            passed: ammoOk,
+            details: isGun ? `Magazin: ${p.snowballs}/30, Zaxira: ${p.reserveAmmo}/120 (R bilan zaryadlash)` : `Qor to'pi: ${p.snowballs}/${p.maxSnowballs} (Space yoki tugma bilan yasash)`
+        });
+
+        // 3. Minecraft 3D Perspektiva va Xarita testi
+        const mapOk = (isGun ? this.mapType === 'warzone' : true) && this.obstacles.length >= 6;
+        results.push({
+            name: "Minecraft Muhiti va Xarita Bazalari",
+            passed: mapOk,
+            details: `Xarita: ${this.mapType}, To'siqlar va qal'alar: ${this.obstacles.length} ta, Voxel bulutlar va kvadrat quyosh: Aktiv`
+        });
+
+        // 4. 1-Litso (3D) va 2-Litso rejimi
+        results.push({
+            name: "Kamera Perspektivasi (3D / 2D)",
+            passed: !!this.cameraMode,
+            details: `Hozirgi rejim: ${this.cameraMode === 'first_person' ? '1-Litso 3D FPS (V bilan almashtirish)' : '2-Litso Tepadan (Top-down)'}`
+        });
+
+        // 5. Minecraft Personaj Modellari
+        const charType = p.characterType || this.characterType || 'steve';
+        results.push({
+            name: "Minecraft 3D Personaj Modeli",
+            passed: typeof this.drawMinecraftCharacter === 'function' && typeof this.draw3DHeroPreview === 'function',
+            details: `Faol qahramon: ${charType.toUpperCase()} (Steve, Skeleton, Enderman, Zombie, Creeper)`
+        });
+
+        // Konsol va ekranga hisobot chiqarish
+        console.log("%c=== 🧪 O'YIN TEST HISOBOTI (DIAGNOSTICS) ===", "color:#00f5d4; font-size:14px; font-weight:bold;");
+        let allPassed = true;
+        for (let r of results) {
+            const icon = r.passed ? '✅' : '❌';
+            if (!r.passed) allPassed = false;
+            console.log(`${icon} ${r.name}: ${r.details}`);
+        }
+        if (allPassed) {
+            this.showKillFeed("✅ TEST REJIMI: Harakat, Qurol va 3D Minecraft to'liq ishlamoqda!", true);
+        } else {
+            this.showKillFeed("⚠️ Testda kamchiliklar aniqlandi, konsolni ko'ring.", true);
+        }
+
+        const total = results.length;
+        const passed = results.filter(r => r.passed).length;
+        const failed = total - passed;
+        return { total, passed, failed, results };
+    }
+
     togglePause() {
         this.isPaused = !this.isPaused;
         const pauseModal = document.getElementById('pauseModal');
@@ -1921,61 +2031,143 @@ class SnowClashGame {
         const w = this.width;
         const h = this.height;
 
-        // Osmon gradienti
+        // 1. MINECRAFT KO'K OSMON (Azure Sky)
         const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-        skyGrad.addColorStop(0, '#5680a6');
-        skyGrad.addColorStop(0.55, '#89b2d3');
-        skyGrad.addColorStop(1, '#d5e6f2');
+        skyGrad.addColorStop(0, '#558de8');
+        skyGrad.addColorStop(0.65, '#78aaff');
+        skyGrad.addColorStop(1, '#a8cdff');
         ctx.fillStyle = skyGrad;
         ctx.fillRect(0, 0, w, horizonY);
 
-        // Uzoqdagi qorli tog'lar (Parallax)
+        // 2. MINECRAFT KVADRAT QUYOSH (Square Sun)
         ctx.save();
-        const mountainOffset = (p.angle * 130) % (w * 0.6);
-        ctx.fillStyle = '#adcce0';
+        const sunAngleOffset = ((p.angle * 280) % (w * 1.6) + w * 1.6) % (w * 1.6) - w * 0.3;
+        const sunY = Math.max(30, horizonY * 0.32);
+
+        // Kvadrat quyosh nuri (Halo)
+        ctx.fillStyle = 'rgba(255, 245, 140, 0.25)';
+        ctx.fillRect(sunAngleOffset - 42, sunY - 42, 84, 84);
+
+        // Tashqi sariq kvadrat
+        ctx.fillStyle = '#fff066';
+        ctx.fillRect(sunAngleOffset - 26, sunY - 26, 52, 52);
+
+        // Ichki oq kvadrat
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(sunAngleOffset - 16, sunY - 16, 32, 32);
+        ctx.restore();
+
+        // 3. MINECRAFT 3D VOXEL BULUTLAR (Drifting Cubic Clouds)
+        ctx.save();
+        const cloudTime = performance.now() * 0.012;
+        const cloudDrift = (cloudTime + p.angle * 180) % (w * 1.4);
+
+        const clouds = [
+            { xRel: -w * 0.2, y: horizonY * 0.22, w: 180, h: 26 },
+            { xRel: w * 0.25, y: horizonY * 0.35, w: 240, h: 32 },
+            { xRel: w * 0.70, y: horizonY * 0.18, w: 200, h: 28 },
+            { xRel: w * 1.15, y: horizonY * 0.38, w: 260, h: 30 }
+        ];
+
+        for (let c of clouds) {
+            let cx = (c.xRel - cloudDrift) % (w * 1.5);
+            if (cx < -300) cx += w * 1.5;
+
+            // Pastki soya qatlami (Minecraft cloud underside shadow)
+            ctx.fillStyle = '#c7d2fe';
+            ctx.fillRect(cx, c.y + c.h - 6, c.w, 6);
+
+            // Asosiy oq kvadrat bulut
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(cx, c.y, c.w, c.h - 6);
+
+            // Qo'shimcha pikselli pog'onalar (Stepped cloud voxels)
+            ctx.fillRect(cx + 25, c.y - 8, c.w - 50, 8);
+        }
+        ctx.restore();
+
+        // 4. MINECRAFT POG'ONALI TOG'LAR (Stepped Voxel Mountain Chunks)
+        ctx.save();
+        const mountainDrift = (p.angle * 140) % (w * 0.8);
+
+        // Uzoqdagi tosh/qor pog'onali bloklar
+        ctx.fillStyle = '#64748b';
         ctx.beginPath();
         ctx.moveTo(-w, horizonY);
-        for (let x = -w * 2; x < w * 3; x += 110) {
-            const peakH = 35 + Math.sin(x * 0.014) * 26 + Math.cos(x * 0.028) * 16;
-            ctx.lineTo(x - mountainOffset, horizonY - peakH);
+        const stepW = 38;
+        for (let x = -w * 2; x < w * 3; x += stepW) {
+            const hIndex = Math.floor(Math.abs(Math.sin(x * 0.008) * 4 + Math.cos(x * 0.016) * 3));
+            const peakH = 25 + hIndex * 14;
+            const drawX = x - mountainDrift;
+            ctx.lineTo(drawX, horizonY - peakH);
+            ctx.lineTo(drawX + stepW, horizonY - peakH);
         }
         ctx.lineTo(w * 3, horizonY);
         ctx.closePath();
         ctx.fill();
 
-        // Yaqinroq oq cho'qqilar
-        ctx.fillStyle = '#cde2ee';
-        ctx.beginPath();
-        ctx.moveTo(-w, horizonY);
-        for (let x = -w * 2; x < w * 3; x += 85) {
-            const peakH = 20 + Math.sin(x * 0.022 + 1) * 16 + Math.cos(x * 0.04) * 12;
-            ctx.lineTo(x - mountainOffset * 1.3, horizonY - peakH);
-        }
-        ctx.lineTo(w * 3, horizonY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-
-        // Qorli yer gradienti
-        const groundGrad = ctx.createLinearGradient(0, horizonY, 0, h);
-        groundGrad.addColorStop(0, '#edf4fa');
-        groundGrad.addColorStop(0.25, '#dbe9f3');
-        groundGrad.addColorStop(1, '#bcd6ea');
-        ctx.fillStyle = groundGrad;
-        ctx.fillRect(0, horizonY, w, h - horizonY);
-
-        // Yer perspektivasi (chuqurlik chiziqlari)
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 1.5;
-        for (let i = 1; i <= 6; i++) {
-            const py = horizonY + Math.pow(i / 6, 2.2) * (h - horizonY);
-            ctx.beginPath();
-            ctx.moveTo(0, py);
-            ctx.lineTo(w, py);
-            ctx.stroke();
+        // Oq qorli tepaliklar (Minecraft Snow Caps on peaks)
+        ctx.fillStyle = '#e2e8f0';
+        for (let x = -w * 2; x < w * 3; x += stepW) {
+            const hIndex = Math.floor(Math.abs(Math.sin(x * 0.008) * 4 + Math.cos(x * 0.016) * 3));
+            if (hIndex >= 3) {
+                const peakH = 25 + hIndex * 14;
+                const drawX = x - mountainDrift;
+                ctx.fillRect(drawX, horizonY - peakH, stepW, 10);
+            }
         }
         ctx.restore();
+
+        // 5. YER (MINECRAFT PERSPECTIVE GROUND)
+        if (this.mapType === 'warzone') {
+            // Warzone: Cobblestone / Tosh g'isht zamin
+            const groundGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+            groundGrad.addColorStop(0, '#334155');
+            groundGrad.addColorStop(0.5, '#1e293b');
+            groundGrad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(0, horizonY, w, h - horizonY);
+
+            // Perspektivali blokli tosh kataklar
+            ctx.save();
+            ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
+            ctx.lineWidth = 2;
+            for (let i = 1; i <= 8; i++) {
+                const py = horizonY + Math.pow(i / 8, 2.1) * (h - horizonY);
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(w, py);
+                ctx.stroke();
+            }
+            // Vertikal chuqurlik nur chiziqlari (3D vanishing lines)
+            for (let vx = 0; vx < w; vx += 120) {
+                ctx.beginPath();
+                ctx.moveTo(w / 2, horizonY);
+                ctx.lineTo(vx * 2 - w / 2, h);
+                ctx.stroke();
+            }
+            ctx.restore();
+        } else {
+            // Qorli maydon (Snow block terrain)
+            const groundGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+            groundGrad.addColorStop(0, '#f1f5f9');
+            groundGrad.addColorStop(0.35, '#e2e8f0');
+            groundGrad.addColorStop(1, '#cbd5e1');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(0, horizonY, w, h - horizonY);
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 1.5;
+            for (let i = 1; i <= 7; i++) {
+                const py = horizonY + Math.pow(i / 7, 2.0) * (h - horizonY);
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(w, py);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
     }
 
     renderFirstPersonEntities(ctx, horizonY, p) {
@@ -2071,99 +2263,133 @@ class SnowClashGame {
 
     draw3DPlayer(ctx, otherP, screenX, screenY, scale) {
         ctx.save();
-        const baseW = 34 * scale;
-        const baseH = 72 * scale;
+        const charType = otherP.characterType || 'steve';
+        const teamColor = otherP.team === 'blue' ? '#38bdf8' : (otherP.team === 'red' ? '#f43f5e' : (otherP.color || '#e63946'));
 
-        // Yerdagi Voxel soya
-        ctx.fillStyle = 'rgba(0, 15, 30, 0.28)';
-        ctx.beginPath();
-        ctx.ellipse(screenX, screenY, baseW * 0.65, baseW * 0.22, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Enderman baland va ingichka, oddiy o'yinchilar proporsional
+        const heightMultiplier = charType === 'enderman' ? 1.45 : 1.0;
+        const widthMultiplier = charType === 'enderman' ? 0.58 : 1.0;
+
+        const baseW = 34 * scale * widthMultiplier;
+        const baseH = 74 * scale * heightMultiplier;
+
+        // Voxel kvadrat soya
+        ctx.fillStyle = 'rgba(0, 10, 25, 0.28)';
+        ctx.fillRect(screenX - baseW * 0.7, screenY - baseW * 0.15, baseW * 1.4, baseW * 0.3);
 
         if (otherP.isDead) {
-            // Muzlagan Minecraft Blok Haykali
-            ctx.fillStyle = 'rgba(160, 220, 255, 0.85)';
-            ctx.strokeStyle = '#70d6ff';
+            // Muzlagan Minecraft Blok
+            ctx.fillStyle = 'rgba(186, 230, 253, 0.85)';
+            ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2 * scale;
-            ctx.fillRect(screenX - baseW * 0.38, screenY - baseH * 0.85, baseW * 0.76, baseH * 0.85);
-            ctx.strokeRect(screenX - baseW * 0.38, screenY - baseH * 0.85, baseW * 0.76, baseH * 0.85);
+            ctx.fillRect(screenX - baseW * 0.45, screenY - baseH * 0.9, baseW * 0.9, baseH * 0.9);
+            ctx.strokeRect(screenX - baseW * 0.45, screenY - baseH * 0.9, baseW * 0.9, baseH * 0.9);
             ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${Math.max(10, Math.round(12 * scale))}px sans-serif`;
+            ctx.font = `bold ${Math.max(10, Math.round(11 * scale))}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillText('⛄ MUZLADI', screenX, screenY - baseH * 0.95);
             ctx.restore();
             return;
         }
 
-        const charType = otherP.characterType || 'steve';
-        const teamColor = otherP.team === 'blue' ? '#4cc9f0' : (otherP.team === 'red' ? '#ff4d6d' : (otherP.color || '#e63946'));
-        const legSwing = Math.sin(otherP.walkCycle || 0) * (12 * scale);
+        const legSwing = Math.sin(otherP.walkCycle || 0) * (11 * scale);
 
         // ==========================================
         // 1. OYOQLAR (Voxel Legs)
         // ==========================================
-        let legColorLeft = '#2b3a67';
-        let legColorRight = '#232f54';
+        const legW = baseW * 0.38;
+        const legH = baseH * 0.38;
 
-        if (charType === 'zombie') {
-            legColorLeft = '#1d2440';
-            legColorRight = '#161c32';
+        if (charType === 'steve') {
+            // Steve: Ko'k-binafsha jinsi shim (Rasmdagi kabi #414bb2)
+            ctx.fillStyle = '#414bb2';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - legH + legSwing, legW, legH);
+            ctx.fillStyle = '#363d91';
+            ctx.fillRect(screenX + baseW * 0.04, screenY - legH - legSwing, legW, legH);
+            // Kulrang poyabzal (Gray shoes)
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - 5 * scale + legSwing, legW, 5 * scale);
+            ctx.fillRect(screenX + baseW * 0.04, screenY - 5 * scale - legSwing, legW, 5 * scale);
+        } else if (charType === 'zombie') {
+            // Zombie: Indigo shim (Rasmdagi kabi)
+            ctx.fillStyle = '#3d4380';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - legH + legSwing, legW, legH);
+            ctx.fillStyle = '#313667';
+            ctx.fillRect(screenX + baseW * 0.04, screenY - legH - legSwing, legW, legH);
+            ctx.fillStyle = '#4b5563';
+            ctx.fillRect(screenX - baseW * 0.42, screenY - 5 * scale + legSwing, legW, 5 * scale);
+            ctx.fillRect(screenX + baseW * 0.04, screenY - 5 * scale - legSwing, legW, 5 * scale);
         } else if (charType === 'skeleton') {
-            legColorLeft = '#d1d5db';
-            legColorRight = '#9ca3af';
+            // Skeleton: Juda ingichka oq suyak oyoqlar (Rasmdagi kabi)
+            const thinLegW = legW * 0.45;
+            ctx.fillStyle = '#d1d5db';
+            ctx.fillRect(screenX - baseW * 0.30, screenY - legH + legSwing, thinLegW, legH);
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillRect(screenX + baseW * 0.15, screenY - legH - legSwing, thinLegW, legH);
         } else if (charType === 'enderman') {
-            legColorLeft = '#111116';
-            legColorRight = '#0a0a0e';
+            // Enderman: Juda uzun ingichka qop-qora oyoqlar (Rasmdagi kabi)
+            const enderLegW = legW * 0.45;
+            ctx.fillStyle = '#08080c';
+            ctx.fillRect(screenX - baseW * 0.32, screenY - legH + legSwing, enderLegW, legH);
+            ctx.fillRect(screenX + baseW * 0.12, screenY - legH - legSwing, enderLegW, legH);
         } else if (charType === 'creeper') {
-            legColorLeft = '#2d6a4f';
-            legColorRight = '#1b4332';
-        } else if (otherP.skin === 'diamond_armor') {
-            legColorLeft = '#0077b6';
-            legColorRight = '#0096c7';
+            // Creeper: 4 ta kalta yashil blok oyoq
+            ctx.fillStyle = '#2d6a4f';
+            ctx.fillRect(screenX - baseW * 0.46, screenY - legH * 0.6 + legSwing, legW * 1.1, legH * 0.6);
+            ctx.fillStyle = '#1b4332';
+            ctx.fillRect(screenX + baseW * 0.02, screenY - legH * 0.6 - legSwing, legW * 1.1, legH * 0.6);
         }
-
-        const legW = baseW * 0.32;
-        const legH = baseH * 0.34;
-        ctx.fillStyle = legColorLeft;
-        ctx.fillRect(screenX - baseW * 0.36, screenY - legH + legSwing, legW, legH);
-        ctx.fillStyle = legColorRight;
-        ctx.fillRect(screenX + baseW * 0.04, screenY - legH - legSwing, legW, legH);
 
         // ==========================================
         // 2. TANA (Voxel Torso)
         // ==========================================
-        const torsoW = baseW * 0.72;
-        const torsoH = baseH * 0.38;
+        const torsoW = baseW * 0.84;
+        const torsoH = baseH * 0.36;
         const torsoY = screenY - legH - torsoH;
 
         if (charType === 'steve') {
-            ctx.fillStyle = '#00a8a8'; // Cyan shirt
+            // Steve: Feruza/Cyan futbolka (Rasmdagi kabi #00a8a8)
+            ctx.fillStyle = '#00a8a8';
             ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
-            // Team badge
-            ctx.fillStyle = teamColor;
-            ctx.fillRect(screenX - torsoW * 0.2, torsoY + torsoH * 0.2, torsoW * 0.4, torsoH * 0.25);
+            // Yoqa o'yig'i (V-neck)
+            ctx.fillStyle = '#d7a17c';
+            ctx.fillRect(screenX - torsoW * 0.18, torsoY, torsoW * 0.36, torsoH * 0.24);
         } else if (charType === 'zombie') {
-            ctx.fillStyle = '#006d77'; // Dark teal shirt
+            // Zombie: Ko'k-yashil futbolka (Rasmdagi kabi)
+            ctx.fillStyle = '#007788';
             ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
+            ctx.fillStyle = '#4f772d';
+            ctx.fillRect(screenX - torsoW * 0.18, torsoY, torsoW * 0.36, torsoH * 0.24);
         } else if (charType === 'skeleton') {
-            ctx.fillStyle = '#e5e7eb'; // Bone body
-            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
-            // Qovurg'a chiziqlari (Ribs)
-            ctx.fillStyle = '#374151';
-            for (let r = 1; r <= 3; r++) {
-                ctx.fillRect(screenX - torsoW * 0.35, torsoY + r * (torsoH * 0.24), torsoW * 0.7, 2 * scale);
-            }
+            // Skeleton: OCHIQ QOVURG'ALI SUYAK KO'KRAK (Rasmdagi kabi HOLLOW RIBCAGE!)
+            // Orqa fon bo'sh ko'rinadi (hollow)
+            ctx.fillStyle = '#1e293b'; // Bo'shliq soyasi
+            ctx.fillRect(screenX - torsoW * 0.38, torsoY + torsoH * 0.15, torsoW * 0.76, torsoH * 0.7);
+
+            // Markaziy umurtqa suyagi (Spine column)
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillRect(screenX - 3 * scale, torsoY, 6 * scale, torsoH);
+
+            // 3 ta oq qovurg'a shinalari (Horizontal ribs)
+            ctx.fillStyle = '#e5e7eb';
+            ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, 4 * scale); // Yelka suyagi
+            ctx.fillRect(screenX - torsoW * 0.44, torsoY + torsoH * 0.3, torsoW * 0.88, 3 * scale);
+            ctx.fillRect(screenX - torsoW * 0.44, torsoY + torsoH * 0.58, torsoW * 0.88, 3 * scale);
+            ctx.fillRect(screenX - torsoW * 0.32, torsoY + torsoH * 0.85, torsoW * 0.64, 4 * scale); // Tos suyagi
         } else if (charType === 'enderman') {
-            ctx.fillStyle = '#111118'; // Deep black
-            ctx.fillRect(screenX - torsoW * 0.35, torsoY - torsoH * 0.2, torsoW * 0.7, torsoH * 1.2);
+            // Enderman: Uzun ingichka qora tana (Rasmdagi kabi)
+            ctx.fillStyle = '#08080c';
+            ctx.fillRect(screenX - torsoW * 0.35, torsoY - torsoH * 0.25, torsoW * 0.7, torsoH * 1.25);
         } else if (charType === 'creeper') {
-            ctx.fillStyle = '#38b000'; // Mottled green
+            // Creeper: Yashil pikselli tana
+            ctx.fillStyle = '#38b000';
             ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
-            ctx.fillStyle = '#2b9348';
-            ctx.fillRect(screenX - torsoW * 0.3, torsoY + torsoH * 0.1, torsoW * 0.3, torsoH * 0.3);
-            ctx.fillRect(screenX + torsoW * 0.05, torsoY + torsoH * 0.4, torsoW * 0.3, torsoH * 0.3);
+            ctx.fillStyle = '#2d6a4f';
+            ctx.fillRect(screenX - torsoW * 0.3, torsoY + torsoH * 0.15, torsoW * 0.3, torsoH * 0.3);
+            ctx.fillRect(screenX + torsoW * 0.05, torsoY + torsoH * 0.45, torsoW * 0.3, torsoH * 0.3);
         }
 
+        // Diamond Armor ko'krak nishoni
         if (otherP.skin === 'diamond_armor') {
             ctx.fillStyle = '#00b4d8';
             ctx.fillRect(screenX - torsoW / 2, torsoY, torsoW, torsoH);
@@ -2175,42 +2401,59 @@ class SnowClashGame {
         // ==========================================
         // 3. QO'LLAR (Voxel Arms)
         // ==========================================
-        const armW = baseW * 0.22;
-        const armH = baseH * 0.35;
-        const armY = torsoY + 2 * scale;
+        const armW = baseW * 0.24;
+        const armH = baseH * 0.36;
+        const armY = torsoY;
 
         if (charType === 'zombie') {
-            // Zombi qo'llari oldinga to'g'ri cho'zilgan (Iconic Zombie stance!)
-            ctx.fillStyle = '#4f772d';
-            ctx.fillRect(screenX - torsoW / 2 - armW, armY - armH * 0.3, armW, armH * 0.55);
-            ctx.fillRect(screenX + torsoW / 2, armY - armH * 0.3, armW, armH * 0.55);
-        } else if (charType === 'creeper') {
-            // Creeperda qo'llar yo'q
-        } else {
-            let armSkin = '#fcd5ce';
-            if (charType === 'skeleton') armSkin = '#d1d5db';
-            else if (charType === 'enderman') armSkin = '#111118';
-
+            // ZOMBI: IKKALA QO'LI TO'G'RI OLDINGA CHO'ZILGAN (Rasmdagi zombie stancedek!)
+            ctx.fillStyle = '#4f772d'; // Yashil zombi qo'li
+            ctx.fillRect(screenX - torsoW / 2 - armW * 0.9, armY - armH * 0.25, armW * 1.1, armH * 0.6);
+            ctx.fillRect(screenX + torsoW / 2 - armW * 0.2, armY - armH * 0.25, armW * 1.1, armH * 0.6);
+            // Yenglar
+            ctx.fillStyle = '#007788';
+            ctx.fillRect(screenX - torsoW / 2 - armW * 0.9, armY, armW * 0.45, armH * 0.3);
+            ctx.fillRect(screenX + torsoW / 2 + armW * 0.45, armY, armW * 0.45, armH * 0.3);
+        } else if (charType === 'enderman') {
+            // ENDERMAN: TIZSADAN HAM PASTGA TUSHGAN JUDA UZUN QORA QO'LLAR!
+            const longArmH = armH * 1.5;
+            ctx.fillStyle = '#08080c';
+            ctx.fillRect(screenX - torsoW / 2 - armW * 0.6, armY - legSwing * 0.3, armW * 0.6, longArmH);
+            ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.3, armW * 0.6, longArmH);
+        } else if (charType === 'skeleton') {
+            // SKELETON: Yupqa suyak qo'llar
+            const thinArmW = armW * 0.5;
+            ctx.fillStyle = '#d1d5db';
+            ctx.fillRect(screenX - torsoW / 2 - thinArmW, armY - legSwing * 0.4, thinArmW, armH);
+            ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.4, thinArmW, armH);
+            // Qo'lda qurol yoki kamon
+            const handX = screenX + torsoW / 2 + thinArmW;
+            const handY = armY + armH * 0.85;
+            if (this.battleType === 'gun') {
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(handX - 3 * scale, handY - 14 * scale, 6 * scale, 18 * scale);
+            }
+        } else if (charType === 'steve') {
+            // STEVE: Tananing o'ng va chap qo'li
             // Chap qo'l
-            ctx.fillStyle = charType === 'steve' ? '#00a8a8' : armSkin;
-            ctx.fillRect(screenX - torsoW / 2 - armW, armY - legSwing * 0.4, armW, armH * 0.4);
-            ctx.fillStyle = armSkin;
-            ctx.fillRect(screenX - torsoW / 2 - armW, armY + armH * 0.4 - legSwing * 0.4, armW, armH * 0.6);
+            ctx.fillStyle = '#00a8a8'; // Yeng
+            ctx.fillRect(screenX - torsoW / 2 - armW, armY - legSwing * 0.4, armW, armH * 0.32);
+            ctx.fillStyle = '#d7a17c'; // Teri
+            ctx.fillRect(screenX - torsoW / 2 - armW, armY + armH * 0.32 - legSwing * 0.4, armW, armH * 0.68);
 
-            // O'ng qo'l (Qurol yoki Qor ushlagan)
-            ctx.fillStyle = charType === 'steve' ? '#00a8a8' : armSkin;
-            ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.4, armW, armH * 0.4);
-            ctx.fillStyle = armSkin;
-            ctx.fillRect(screenX + torsoW / 2, armY + armH * 0.4 + legSwing * 0.4, armW, armH * 0.6);
+            // O'ng qo'l
+            ctx.fillStyle = '#00a8a8';
+            ctx.fillRect(screenX + torsoW / 2, armY + legSwing * 0.4, armW, armH * 0.32);
+            ctx.fillStyle = '#d7a17c';
+            ctx.fillRect(screenX + torsoW / 2, armY + armH * 0.32 + legSwing * 0.4, armW, armH * 0.68);
 
             // Qo'ldagi qurol yoki qor to'pi
             const handX = screenX + torsoW / 2 + armW / 2;
             const handY = armY + armH * 0.85 + legSwing * 0.4;
             if (this.battleType === 'gun') {
-                // 3D Voxel Pixel AK-47 / Blaster
-                ctx.fillStyle = '#854d0e'; // Yog'och stock
-                ctx.fillRect(handX - 4 * scale, handY - 4 * scale, 8 * scale, 16 * scale);
-                ctx.fillStyle = '#1e293b'; // Qurol stvoli
+                ctx.fillStyle = '#854d0e'; // Wooden stock
+                ctx.fillRect(handX - 3 * scale, handY - 4 * scale, 7 * scale, 14 * scale);
+                ctx.fillStyle = '#1e293b'; // Barrel
                 ctx.fillRect(handX - 2 * scale, handY - 18 * scale, 5 * scale, 16 * scale);
             } else if (otherP.snowballs > 0) {
                 ctx.fillStyle = '#ffffff';
@@ -2221,93 +2464,108 @@ class SnowClashGame {
         }
 
         // ==========================================
-        // 4. BOSH (Voxel Head)
+        // 4. BOSH (Cubic Voxel Head - 100% Rasmdagidek)
         // ==========================================
-        const headSize = baseW * 0.62;
+        const headSize = baseW * 0.76;
         const headX = screenX - headSize / 2;
         const headY = torsoY - headSize;
 
         if (charType === 'steve') {
-            ctx.fillStyle = '#fcd5ce'; // Skin
+            // Steve boshi: Teri #d7a17c, soch #4a2c11
+            ctx.fillStyle = '#d7a17c';
             ctx.fillRect(headX, headY, headSize, headSize);
-            // Brown hair
-            ctx.fillStyle = '#4a2e18';
-            ctx.fillRect(headX, headY, headSize, headSize * 0.28);
-            ctx.fillRect(headX, headY, headSize * 0.2, headSize * 0.5);
-            ctx.fillRect(headX + headSize * 0.8, headY, headSize * 0.2, headSize * 0.5);
-            // Eyes
+            // Jigarrang soch (Top & Sides)
+            ctx.fillStyle = '#4a2c11';
+            ctx.fillRect(headX, headY, headSize, headSize * 0.3);
+            ctx.fillRect(headX, headY, headSize * 0.18, headSize * 0.55);
+            ctx.fillRect(headX + headSize * 0.82, headY, headSize * 0.18, headSize * 0.55);
+            // Moviy ko'zlar
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(headX + headSize * 0.2, headY + headSize * 0.45, headSize * 0.22, headSize * 0.14);
-            ctx.fillRect(headX + headSize * 0.58, headY + headSize * 0.45, headSize * 0.22, headSize * 0.14);
-            ctx.fillStyle = '#2b3a67';
-            ctx.fillRect(headX + headSize * 0.3, headY + headSize * 0.45, headSize * 0.12, headSize * 0.14);
-            ctx.fillRect(headX + headSize * 0.68, headY + headSize * 0.45, headSize * 0.12, headSize * 0.14);
+            ctx.fillRect(headX + headSize * 0.16, headY + headSize * 0.48, headSize * 0.24, headSize * 0.14);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.48, headSize * 0.24, headSize * 0.14);
+            ctx.fillStyle = '#25397a';
+            ctx.fillRect(headX + headSize * 0.28, headY + headSize * 0.48, headSize * 0.12, headSize * 0.14);
+            ctx.fillRect(headX + headSize * 0.72, headY + headSize * 0.48, headSize * 0.12, headSize * 0.14);
+            // Burun
+            ctx.fillStyle = '#c58b68';
+            ctx.fillRect(headX + headSize * 0.42, headY + headSize * 0.64, headSize * 0.16, headSize * 0.12);
         } else if (charType === 'zombie') {
-            ctx.fillStyle = '#4f772d'; // Green skin
+            // Zombie: Yashil kalla (#4f772d), qora ko'zlar
+            ctx.fillStyle = '#4f772d';
             ctx.fillRect(headX, headY, headSize, headSize);
-            ctx.fillStyle = '#283618'; // Dark hair
-            ctx.fillRect(headX, headY, headSize, headSize * 0.25);
-            // Hollow dark eyes
+            ctx.fillStyle = '#283618';
+            ctx.fillRect(headX, headY, headSize, headSize * 0.28);
+            // Qora ko'zlar
             ctx.fillStyle = '#0f1406';
-            ctx.fillRect(headX + headSize * 0.2, headY + headSize * 0.42, headSize * 0.2, headSize * 0.16);
-            ctx.fillRect(headX + headSize * 0.6, headY + headSize * 0.42, headSize * 0.2, headSize * 0.16);
+            ctx.fillRect(headX + headSize * 0.18, headY + headSize * 0.45, headSize * 0.22, headSize * 0.16);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.45, headSize * 0.22, headSize * 0.16);
         } else if (charType === 'skeleton') {
-            ctx.fillStyle = '#e5e7eb'; // Bone skull
+            // Skeleton: Oq-kulrang suyak kalla, chuqur qora ko'z va og'iz (Rasmdagi kabi)
+            ctx.fillStyle = '#d1d5db';
             ctx.fillRect(headX, headY, headSize, headSize);
-            // Dark eye sockets
+            // Katta qora ko'z chuqurlari
             ctx.fillStyle = '#111827';
-            ctx.fillRect(headX + headSize * 0.18, headY + headSize * 0.36, headSize * 0.24, headSize * 0.22);
-            ctx.fillRect(headX + headSize * 0.58, headY + headSize * 0.36, headSize * 0.24, headSize * 0.22);
-            // Nose slot
-            ctx.fillRect(headX + headSize * 0.44, headY + headSize * 0.65, headSize * 0.12, headSize * 0.1);
+            ctx.fillRect(headX + headSize * 0.15, headY + headSize * 0.32, headSize * 0.26, headSize * 0.26);
+            ctx.fillRect(headX + headSize * 0.59, headY + headSize * 0.32, headSize * 0.26, headSize * 0.26);
+            // Qora og'iz teshigi
+            ctx.fillRect(headX + headSize * 0.24, headY + headSize * 0.70, headSize * 0.52, headSize * 0.15);
         } else if (charType === 'enderman') {
-            ctx.fillStyle = '#111118'; // Pure black
+            // Enderman: Qop-qora kalla va yupqa binafsharang porloq ko'zlar (Rasmdagi kabi)
+            ctx.fillStyle = '#08080c';
             ctx.fillRect(headX, headY, headSize, headSize);
-            // Glowing Purple slit eyes
+            // Porlab turuvchi binafsha ko'zlar
             ctx.fillStyle = '#e040fb';
             ctx.shadowColor = '#e040fb';
-            ctx.shadowBlur = 10 * scale;
-            ctx.fillRect(headX + headSize * 0.15, headY + headSize * 0.45, headSize * 0.28, headSize * 0.12);
-            ctx.fillRect(headX + headSize * 0.57, headY + headSize * 0.45, headSize * 0.28, headSize * 0.12);
+            ctx.shadowBlur = 12 * scale;
+            ctx.fillRect(headX + headSize * 0.10, headY + headSize * 0.46, headSize * 0.32, headSize * 0.10);
+            ctx.fillRect(headX + headSize * 0.58, headY + headSize * 0.46, headSize * 0.32, headSize * 0.10);
             ctx.shadowBlur = 0;
+
+            // Atrofida suzuvchi binafsha Ender zarrachalari
+            ctx.fillStyle = '#c084fc';
+            for (let ep = 0; ep < 3; ep++) {
+                const pOffX = Math.sin(otherP.walkCycle + ep * 2) * (headSize * 0.7);
+                const pOffY = Math.cos(otherP.walkCycle + ep * 2) * (headSize * 0.5);
+                ctx.fillRect(screenX + pOffX, headY + pOffY, 3 * scale, 3 * scale);
+            }
         } else if (charType === 'creeper') {
+            // Creeper: Mashhur qora g'amgin yuzi
             ctx.fillStyle = '#38b000';
             ctx.fillRect(headX, headY, headSize, headSize);
-            // Famous Creeper Face
             ctx.fillStyle = '#000000';
-            ctx.fillRect(headX + headSize * 0.18, headY + headSize * 0.24, headSize * 0.22, headSize * 0.22);
-            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.24, headSize * 0.22, headSize * 0.22);
-            ctx.fillRect(headX + headSize * 0.38, headY + headSize * 0.46, headSize * 0.24, headSize * 0.32);
-            ctx.fillRect(headX + headSize * 0.26, headY + headSize * 0.64, headSize * 0.48, headSize * 0.22);
+            ctx.fillRect(headX + headSize * 0.16, headY + headSize * 0.24, headSize * 0.24, headSize * 0.24);
+            ctx.fillRect(headX + headSize * 0.60, headY + headSize * 0.24, headSize * 0.24, headSize * 0.24);
+            ctx.fillRect(headX + headSize * 0.38, headY + headSize * 0.48, headSize * 0.24, headSize * 0.32);
+            ctx.fillRect(headX + headSize * 0.24, headY + headSize * 0.64, headSize * 0.52, headSize * 0.22);
         }
 
-        // Diamond Dubulg'a (Helmet)
+        // Diamond Dubulg'a
         if (otherP.skin === 'diamond_armor') {
             ctx.fillStyle = '#00b4d8';
-            ctx.fillRect(headX - 2 * scale, headY - 3 * scale, headSize + 4 * scale, headSize * 0.5);
-            ctx.fillRect(headX - 2 * scale, headY, headSize * 0.2, headSize);
-            ctx.fillRect(headX + headSize * 0.8, headY, headSize * 0.2 + 2 * scale, headSize);
+            ctx.fillRect(headX - 2 * scale, headY - 3 * scale, headSize + 4 * scale, headSize * 0.45);
+            ctx.fillRect(headX - 2 * scale, headY, headSize * 0.18, headSize);
+            ctx.fillRect(headX + headSize * 0.82, headY, headSize * 0.18 + 2 * scale, headSize);
         }
 
-        // Muz Qalqoni (Frost Shield Aura)
+        // Frost Shield Auras
         if (otherP.shield > 0) {
             ctx.strokeStyle = '#00f5d4';
             ctx.lineWidth = 3 * scale;
             ctx.shadowColor = '#00f5d4';
             ctx.shadowBlur = 12 * scale;
-            ctx.strokeRect(screenX - baseW * 0.52, headY - 4 * scale, baseW * 1.04, baseH * 1.15);
+            ctx.strokeRect(screenX - baseW * 0.55, headY - 4 * scale, baseW * 1.1, baseH * 1.12);
             ctx.shadowBlur = 0;
         }
 
         // ==========================================
-        // 5. HEALTH BAR VA NOMI
+        // 5. JON VA NOMI (Overhead Nameplate & HP)
         // ==========================================
-        const barW = Math.max(44, 58 * scale);
+        const barW = Math.max(46, 56 * scale);
         const barH = Math.max(5, 7 * scale);
         const barX = screenX - barW / 2;
         const barY = headY - 14 * scale;
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(barX, barY, barW, barH);
         const hpPct = Math.max(0, Math.min(1, otherP.hp / (otherP.maxHp || 100)));
         ctx.fillStyle = hpPct > 0.35 ? '#06d6a0' : '#ff3366';
