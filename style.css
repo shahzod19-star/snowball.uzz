@@ -599,33 +599,84 @@ body, html {
     height: 200px;
 }
 
-/* Personaj turi (Odamcha vs Yumaloq) tanlash */
-.character-type-switch {
-    display: flex;
-    background: rgba(8, 20, 38, 0.7);
-    border: 2px solid var(--card-border);
-    border-radius: 30px;
-    padding: 4px;
-    gap: 4px;
-    margin-top: 10px;
-    z-index: 5;
+/* JANG TURI (QOR JANGI VS QUROLLI JANG) SWITCHER */
+.battle-type-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
-.type-switch-btn {
-    background: none;
-    border: none;
-    color: var(--snow-white);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 800;
-    font-size: 0.88rem;
+.battle-type-btn {
+    background: rgba(10, 24, 46, 0.85);
+    border: 2px solid rgba(112, 214, 255, 0.3);
+    border-radius: 12px;
+    color: #ffffff;
+    padding: 10px 8px;
+    font-family: 'Fredoka One', cursive, sans-serif;
+    font-size: 0.84rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
 }
 
-.type-switch-btn.active {
+.battle-type-btn:hover {
+    border-color: #ffd166;
+    transform: translateY(-2px);
+}
+
+.battle-type-btn.active.snow {
+    background: linear-gradient(135deg, #0077b6, #0096c7);
+    border-color: #70d6ff;
+    box-shadow: 0 4px 15px rgba(0, 150, 199, 0.5);
+    transform: scale(1.02);
+}
+
+.battle-type-btn.active.gun {
+    background: linear-gradient(135deg, #d90429, #ef233c);
+    border-color: #ffd166;
+    box-shadow: 0 4px 15px rgba(217, 4, 41, 0.55);
+    transform: scale(1.02);
+}
+
+/* MINECRAFT PERSONAJLARI TANLOVI */
+.mc-character-selector {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    z-index: 5;
+    max-width: 320px;
+}
+
+.mc-char-card {
+    background: rgba(14, 30, 56, 0.85);
+    border: 2px solid rgba(112, 214, 255, 0.25);
+    border-radius: 12px;
+    color: var(--snow-white);
+    padding: 6px 11px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Fredoka One', 'Nunito', sans-serif;
+}
+
+.mc-char-card:hover {
+    transform: translateY(-2px);
+    border-color: #ffd166;
+    background: rgba(20, 45, 80, 0.95);
+}
+
+.mc-char-card.active {
     background: linear-gradient(135deg, #06d6a0, #118ab2);
-    box-shadow: 0 4px 12px rgba(6, 214, 160, 0.4);
+    border-color: #ffffff;
+    box-shadow: 0 4px 14px rgba(6, 214, 160, 0.5);
+    transform: scale(1.05);
 }
 
 /* Rang tanlash aylanachalari */

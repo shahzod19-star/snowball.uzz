@@ -20,9 +20,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Profil va sozlamalar
     let playerName = localStorage.getItem('snow_player_name') || 'QorJangchisi';
     let playerColor = localStorage.getItem('snow_player_color') || '#e63946';
-    let characterType = localStorage.getItem('snow_char_type') || 'human'; // 'human' yoki 'classic'
+    let characterType = localStorage.getItem('snow_char_type') || 'steve';
+    if (characterType === 'human' || characterType === 'classic') characterType = 'steve';
+    let selectedBattleType = localStorage.getItem('snow_battle_type') || 'snow'; // 'snow' yoki 'gun'
     let selectedMode = '1v1';
-    let selectedMap = 'wonderland';
+    let selectedMap = selectedBattleType === 'gun' ? 'warzone' : 'wonderland';
     let currentRoomInfo = null;
     let isHost = false;
 
@@ -48,73 +50,138 @@ document.addEventListener('DOMContentLoaded', () => {
     editNameInput.value = playerName;
 
     // -------------------------------------------------------------
-    // 1. PERSONAJNING PODIUMDAGI JONLI PREVIEWSI (HERO PREVIEW)
+    // 1. PERSONAJNING PODIUMDAGI 3D PREVIEWSI (3D MINECRAFT HERO PREVIEW)
     // -------------------------------------------------------------
     let previewFrame = 0;
     function renderHeroPreview() {
         heroCtx.clearRect(0, 0, 180, 200);
-        previewFrame += 0.05;
+        previewFrame += 0.035;
         const sq = window.shopAndQuests;
-        const currentSkin = sq ? sq.equippedSkin : (localStorage.getItem('snow_equipped_skin') || 'santa');
+        const currentSkin = sq ? sq.equippedSkin : (localStorage.getItem('snow_equipped_skin') || 'steve');
         const currentBall = sq ? sq.equippedBall : (localStorage.getItem('snow_equipped_ball') || 'classic');
 
-        const p = {
-            x: 90,
-            y: 110,
-            radius: 26,
-            color: playerColor,
-            characterType: characterType,
-            skin: currentSkin,
-            snowballType: currentBall,
-            team: 'blue',
-            hp: 100,
-            maxHp: 100,
-            snowballs: 1,
-            isCrafting: false,
-            isMoving: true,
-            walkCycle: previewFrame * 2,
-            angle: Math.sin(previewFrame) * 0.3,
-            isDead: false,
-            throwAnim: 0
-        };
-
-        if (characterType === 'human') {
-            game.drawHumanCharacter(heroCtx, p);
-        } else {
-            game.drawClassicCharacter(heroCtx, p);
+        if (game && typeof game.draw3DHeroPreview === 'function') {
+            game.draw3DHeroPreview(heroCtx, 90, 160, characterType, currentSkin, currentBall, previewFrame, selectedBattleType);
+        } else if (game && typeof game.drawMinecraftCharacter === 'function') {
+            const p = {
+                x: 90,
+                y: 110,
+                radius: 26,
+                color: playerColor,
+                characterType: characterType,
+                skin: currentSkin,
+                snowballType: currentBall,
+                team: 'blue',
+                hp: 100,
+                maxHp: 100,
+                snowballs: 1,
+                isCrafting: false,
+                isMoving: true,
+                walkCycle: previewFrame * 2,
+                angle: Math.sin(previewFrame) * 0.3,
+                isDead: false,
+                throwAnim: 0
+            };
+            game.drawMinecraftCharacter(heroCtx, p);
         }
 
         requestAnimationFrame(renderHeroPreview);
     }
     requestAnimationFrame(renderHeroPreview);
 
-    // Personaj turi tugmalari (Odamcha vs Yumaloq)
-    const btnTypeHuman = document.getElementById('btnTypeHuman');
-    const btnTypeClassic = document.getElementById('btnTypeClassic');
-
-    function updateTypeButtons() {
-        if (characterType === 'human') {
-            btnTypeHuman.classList.add('active');
-            btnTypeClassic.classList.remove('active');
-            settingCharSelect.value = 'human';
-        } else {
-            btnTypeHuman.classList.remove('active');
-            btnTypeClassic.classList.add('active');
-            settingCharSelect.value = 'classic';
-        }
+    // Minecraft Personaj tanlovi (Steve, Zombie, Skelet, Enderman, Creeper)
+    const mcCharCards = document.querySelectorAll('.mc-char-card');
+    function updateMcCharUI() {
+        mcCharCards.forEach(c => {
+            if (c.getAttribute('data-char') === characterType) {
+                c.classList.add('active');
+            } else {
+                c.classList.remove('active');
+            }
+        });
+        if (settingCharSelect) settingCharSelect.value = characterType;
         localStorage.setItem('snow_char_type', characterType);
-        game.localPlayer.characterType = characterType;
+        if (game.localPlayer) game.localPlayer.characterType = characterType;
     }
 
-    btnTypeHuman.addEventListener('click', () => {
-        characterType = 'human';
-        updateTypeButtons();
+    mcCharCards.forEach(card => {
+        card.addEventListener('click', () => {
+            characterType = card.getAttribute('data-char') || 'steve';
+            updateMcCharUI();
+        });
     });
 
-    btnTypeClassic.addEventListener('click', () => {
-        characterType = 'classic';
-        updateTypeButtons();
-    });
+    if (settingCharSelect) {
+        settingCharSelect.addEventListener('change', (e) => {
+            characterType = e.target.value;
+            updateMcCharUI();
+        });
+    }
+    updateMcCharUI();
+
+    // Jang Turi: Qor Jangi (Snow) vs Qurolli Jang (Gun)
+    const btnBattleSnow = document.getElementById('btnBattleSnow');
+    const btnBattleGun = document.getElementById('btnBattleGun');
+    const pillMapWarzone = document.getElementById('pillMapWarzone');
+
+    function updateBattleTypeUI() {
+        if (selectedBattleType === 'gun') {
+            if (btnBattleGun) btnBattleGun.classList.add('active');
+            if (btnBattleSnow) btnBattleSnow.classList.remove('active');
+            if (pillMapWarzone) {
+                pillMapWarzone.style.display = 'flex';
+                // Gun rejimida Minecraft Bazasi (warzone) majburiy
+                const allPills = document.querySelectorAll('#mapPillsContainer .mode-pill');
+                allPills.forEach(p => {
+                    if (p.getAttribute('data-map') === 'warzone') {
+                        p.classList.add('active');
+                        p.style.display = 'flex';
+                    } else {
+                        p.classList.remove('active');
+                        p.style.display = 'none'; // Qor va qurol bir kartada o'ynalmaydi!
+                    }
+                });
+                selectedMap = 'warzone';
+            }
+        } else {
+            if (btnBattleSnow) btnBattleSnow.classList.add('active');
+            if (btnBattleGun) btnBattleGun.classList.remove('active');
+            if (pillMapWarzone) {
+                pillMapWarzone.style.display = 'none';
+                const allPills = document.querySelectorAll('#mapPillsContainer .mode-pill');
+                allPills.forEach(p => {
+                    const m = p.getAttribute('data-map');
+                    if (m === 'warzone') {
+                        p.style.display = 'none';
+                        p.classList.remove('active');
+                    } else {
+                        p.style.display = 'flex';
+                    }
+                });
+                if (selectedMap === 'warzone') {
+                    selectedMap = 'wonderland';
+                    const wonderPill = document.querySelector('#mapPillsContainer .mode-pill[data-map="wonderland"]');
+                    if (wonderPill) wonderPill.classList.add('active');
+                }
+            }
+        }
+        localStorage.setItem('snow_battle_type', selectedBattleType);
+    }
+
+    if (btnBattleSnow) {
+        btnBattleSnow.addEventListener('click', () => {
+            selectedBattleType = 'snow';
+            updateBattleTypeUI();
+        });
+    }
+
+    if (btnBattleGun) {
+        btnBattleGun.addEventListener('click', () => {
+            selectedBattleType = 'gun';
+            updateBattleTypeUI();
+        });
+    }
+    updateBattleTypeUI();
 
     // Rang tanlash aylanachalari
     const colorCircles = document.querySelectorAll('.color-circle');
@@ -396,8 +463,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: playerName,
                 color: playerColor,
                 characterType: characterType,
+                battleType: selectedBattleType,
                 mode: msg.room.mode,
-                map: msg.room.map,
+                map: selectedBattleType === 'gun' ? 'warzone' : (msg.room.map || selectedMap),
                 roomCode: msg.room.roomId,
                 team: myTeam,
                 isMultiplayer: true,
@@ -892,8 +960,9 @@ document.addEventListener('DOMContentLoaded', () => {
             name: playerName,
             color: playerColor,
             characterType: characterType,
+            battleType: selectedBattleType,
             mode: selectedMode,
-            map: selectedMap,
+            map: selectedBattleType === 'gun' ? 'warzone' : selectedMap,
             isMultiplayer: false,
             useBots: true
         });
@@ -917,8 +986,9 @@ document.addEventListener('DOMContentLoaded', () => {
             name: playerName,
             color: playerColor,
             characterType: characterType,
+            battleType: selectedBattleType,
             mode: selectedMode,
-            map: selectedMap,
+            map: selectedBattleType === 'gun' ? 'warzone' : selectedMap,
             isMultiplayer: false,
             useBots: true
         });
@@ -935,8 +1005,9 @@ document.addEventListener('DOMContentLoaded', () => {
             name: playerName,
             color: playerColor,
             characterType: characterType,
+            battleType: selectedBattleType,
             mode: selectedMode,
-            map: selectedMap,
+            map: selectedBattleType === 'gun' ? 'warzone' : selectedMap,
             isMultiplayer: false,
             useBots: true
         });
@@ -957,8 +1028,9 @@ document.addEventListener('DOMContentLoaded', () => {
             name: playerName,
             color: playerColor,
             characterType: characterType,
+            battleType: selectedBattleType,
             mode: selectedMode,
-            map: selectedMap,
+            map: selectedBattleType === 'gun' ? 'warzone' : selectedMap,
             isMultiplayer: false,
             useBots: true
         });

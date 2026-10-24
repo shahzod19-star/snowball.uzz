@@ -18,27 +18,34 @@ class ShopAndQuestsManager {
         }
 
         // Sotib olingan buyumlar
-        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["santa"]');
-        this.ownedBalls = JSON.parse(localStorage.getItem('snow_owned_balls') || '["classic"]');
+        this.ownedSkins = JSON.parse(localStorage.getItem('snow_owned_skins') || '["steve", "santa"]');
+        if (!this.ownedSkins.includes('steve')) this.ownedSkins.push('steve');
+        this.ownedBalls = JSON.parse(localStorage.getItem('snow_owned_balls') || '["classic", "pixel_ak47"]');
+        if (!this.ownedBalls.includes('pixel_ak47')) this.ownedBalls.push('pixel_ak47');
 
-        this.equippedSkin = localStorage.getItem('snow_equipped_skin') || 'santa';
+        this.equippedSkin = localStorage.getItem('snow_equipped_skin') || 'steve';
         this.equippedBall = localStorage.getItem('snow_equipped_ball') || 'classic';
 
-        // Do'kondagi skinlar ro'yxati
+        // Minecraft va Bayramona Skinlar
         this.skinsCatalog = [
-            { id: 'santa', name: '🎅 Santa Qizil', price: 0, desc: 'Klassik bayramona qishki libos' },
-            { id: 'ninja', name: '🥷 Muzli Ninja', price: 150, desc: 'Qora niqob va chaqqon harakat' },
-            { id: 'king', name: '👑 Qor Qiroli', price: 250, desc: 'Oltin toj va shohona plash' },
-            { id: 'bear', name: '🐻 Qutb Ayig\'i', price: 200, desc: 'Qalin oq mo\'yna va issiq quloqlar' },
-            { id: 'cyber', name: '🤖 Kiber Qorbo\'ron', price: 350, desc: 'Yaltiroq neon kiberzirh' }
+            { id: 'steve', name: '⛏️ Steve (Klassik)', price: 0, desc: 'Minecraft afsonaviy bosh qahramoni' },
+            { id: 'zombie', name: '🧟 Zombie (Yashil)', price: 120, desc: 'Yashil xatarli mutant jangchi' },
+            { id: 'skeleton', name: '💀 Skelet Mergan', price: 180, desc: 'Oq suyakli chaqqon nishonchi' },
+            { id: 'enderman', name: '🌌 Enderman (Ender)', price: 260, desc: 'Binafsha ko\'zli sirli qora jonzot' },
+            { id: 'creeper', name: '💥 Creeper Kamuflaj', price: 220, desc: 'Yashil portlovchi blokli qahramon' },
+            { id: 'diamond_armor', name: '💎 Olmos Zirhli Steve', price: 340, desc: 'To\'liq olmos (Diamond) zirh bilan himoyalangan' },
+            { id: 'netherite', name: '🔥 Netherite Jangchisi', price: 450, desc: 'Eng mustahkam va kuchli qora qotishma zirh' },
+            { id: 'cyber_steve', name: '🤖 Kiber Voxel Steve', price: 500, desc: 'Neon nurlar bilan porlovchi kiber blok' }
         ];
 
-        // Do'kondagi qurollar ro'yxati
+        // Qurollar va Qor to'plari ro'yxati
         this.ballsCatalog = [
             { id: 'classic', name: '❄️ Klassik Qor to\'pi', price: 0, desc: 'Oq yumaloq qor to\'pi' },
-            { id: 'fire', name: '🔥 Olovli Qor to\'pi', price: 180, desc: 'Qizil-olovli iz qoldirib uchadi' },
-            { id: 'plasma', name: '⚡ Yashinli Plazma Qor', price: 220, desc: 'Moviy chaqmoq nuri bilan porlaydi' },
-            { id: 'rainbow', name: '🌈 Kamalak Qor to\'pi', price: 300, desc: 'Rang-barang sehrli kamalak effekti' }
+            { id: 'pixel_ak47', name: '🔫 Pixel AK-47 Miltig\'i', price: 150, desc: 'Tezkor o\'q otuvchi klassik blokli miltiq' },
+            { id: 'laser_blaster', name: '⚡ Redstone Lazer Blaster', price: 240, desc: 'Qizil lazerli plazma nurlari bilan otadi' },
+            { id: 'diamond_sniper', name: '💎 Olmosli Snayper', price: 350, desc: 'Uzoq masofaga kritik katta zarar yetkazadi' },
+            { id: 'tnt_cannon', name: '💥 TNT Granatomyot', price: 420, desc: 'Blokli portlovchi katta snaryadlar otadi' },
+            { id: 'fire_magma', name: '🔥 Magma Olov To\'pi', price: 200, desc: 'Olovli iz qoldirib harakatlanadi' }
         ];
 
         // Kuchaytirish konfiguratsiyasi (5 ta asosiy parametr)
