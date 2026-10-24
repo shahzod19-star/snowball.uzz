@@ -602,68 +602,125 @@ class SnowClash3D {
         }
         this.obstacleMeshes = [];
 
-        const mapW = this.game.width;
-        const mapH = this.game.height;
+        const mapW = this.game.width || 1200;
+        const mapH = this.game.height || 800;
 
-        for (let obs of this.game.obstacles) {
-            const ox = obs.x + obs.width / 2 - mapW / 2;
-            const oz = obs.y + obs.height / 2 - mapH / 2;
+        for (let obs of (this.game.obstacles || [])) {
+            try {
+                const ow = Number(obs.width) || (Number(obs.radius) ? Number(obs.radius) * 2 : 36);
+                const oh = Number(obs.height) || (Number(obs.radius) ? Number(obs.radius) * 2 : 36);
+                const ox = (Number(obs.x) || 0) + ow / 2 - mapW / 2;
+                const oz = (Number(obs.y) || 0) + oh / 2 - mapH / 2;
 
-            if (obs.type === 'fortress_blue' || obs.type === 'fortress_red') {
-                // 3D Qal'a (Stone Castle Fortress)
-                const fortGeo = new THREE.BoxGeometry(obs.width, 45, obs.height);
-                const fortMat = new THREE.MeshStandardMaterial({
-                    map: this.textures.cobble,
-                    roughness: 0.8
-                });
-                const fortMesh = new THREE.Mesh(fortGeo, fortMat);
-                fortMesh.position.set(ox, 22.5, oz);
-                fortMesh.castShadow = true;
-                fortMesh.receiveShadow = true;
+                if (obs.type === 'fortress_blue' || obs.type === 'fortress_red') {
+                    // 3D Qal'a (Stone Castle Fortress)
+                    const fortGeo = new THREE.BoxGeometry(ow, 45, oh);
+                    const fortMat = new THREE.MeshStandardMaterial({
+                        map: this.textures.cobble,
+                        roughness: 0.8
+                    });
+                    const fortMesh = new THREE.Mesh(fortGeo, fortMat);
+                    fortMesh.position.set(ox, 22.5, oz);
+                    fortMesh.castShadow = true;
+                    fortMesh.receiveShadow = true;
 
-                // Qal'a tishlari (Crenellations)
-                for (let step = -obs.width / 2 + 10; step < obs.width / 2; step += 24) {
-                    const tooth = new THREE.Mesh(new THREE.BoxGeometry(14, 12, obs.height + 2), fortMat);
-                    tooth.position.set(step, 28, 0);
-                    fortMesh.add(tooth);
+                    // Qal'a tishlari (Crenellations)
+                    for (let step = -ow / 2 + 10; step < ow / 2; step += 24) {
+                        const tooth = new THREE.Mesh(new THREE.BoxGeometry(14, 12, oh + 2), fortMat);
+                        tooth.position.set(step, 28, 0);
+                        fortMesh.add(tooth);
+                    }
+
+                    this.scene.add(fortMesh);
+                    this.obstacleMeshes.push(fortMesh);
+                } else if (obs.type === 'tnt') {
+                    // 3D Qizil TNT bloki
+                    const tntGeo = new THREE.BoxGeometry(ow, 32, oh);
+                    const tntMatArray = [
+                        new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
+                        new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
+                        new THREE.MeshStandardMaterial({ color: 0x991b1b }), // usti
+                        new THREE.MeshStandardMaterial({ color: 0x7f1d1d }), // pasti
+                        new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
+                        new THREE.MeshStandardMaterial({ map: this.textures.tntSide })
+                    ];
+                    const tntMesh = new THREE.Mesh(tntGeo, tntMatArray);
+                    tntMesh.position.set(ox, 16, oz);
+                    tntMesh.castShadow = true;
+                    this.scene.add(tntMesh);
+                    this.obstacleMeshes.push(tntMesh);
+                } else if (obs.type === 'chest') {
+                    // 3D Yog'och Sandiq (Chest)
+                    const chestGeo = new THREE.BoxGeometry(ow, 28, oh);
+                    const chestMat = new THREE.MeshStandardMaterial({ map: this.textures.chestSide });
+                    const chestMesh = new THREE.Mesh(chestGeo, chestMat);
+                    chestMesh.position.set(ox, 14, oz);
+                    chestMesh.castShadow = true;
+                    this.scene.add(chestMesh);
+                    this.obstacleMeshes.push(chestMesh);
+                } else if (obs.type === 'mc_tree' || obs.type === 'grand_tree') {
+                    // 3D Minecraft Archasi (Blocky Tree)
+                    const treeGroup = new THREE.Group();
+                    const isGrand = (obs.type === 'grand_tree');
+                    const trunkH = isGrand ? 55 : 36;
+                    const trunkW = isGrand ? 16 : 10;
+                    const trunk = new THREE.Mesh(
+                        new THREE.BoxGeometry(trunkW, trunkH, trunkW),
+                        new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 })
+                    );
+                    trunk.position.y = trunkH / 2;
+                    trunk.castShadow = true;
+                    treeGroup.add(trunk);
+
+                    const leavesW = isGrand ? 65 : 44;
+                    const leavesH = isGrand ? 50 : 32;
+                    const leaves = new THREE.Mesh(
+                        new THREE.BoxGeometry(leavesW, leavesH, leavesW),
+                        new THREE.MeshStandardMaterial({ color: 0x2d6a4f, roughness: 0.85 })
+                    );
+                    leaves.position.y = trunkH + leavesH / 2 - 8;
+                    leaves.castShadow = true;
+                    treeGroup.add(leaves);
+
+                    treeGroup.position.set(ox, 0, oz);
+                    this.scene.add(treeGroup);
+                    this.obstacleMeshes.push(treeGroup);
+                } else if (obs.type === 'watchtower') {
+                    // 3D Qorovul Minorasi (Watchtower)
+                    const towerGeo = new THREE.CylinderGeometry(ow / 2, ow / 2, 55, 10);
+                    const towerMat = new THREE.MeshStandardMaterial({ map: this.textures.cobble, roughness: 0.8 });
+                    const towerMesh = new THREE.Mesh(towerGeo, towerMat);
+                    towerMesh.position.set(ox, 27.5, oz);
+                    towerMesh.castShadow = true;
+                    this.scene.add(towerMesh);
+                    this.obstacleMeshes.push(towerMesh);
+                } else if (obs.type === 'snowman') {
+                    // 3D Qorbola (Snowman)
+                    const smGroup = new THREE.Group();
+                    const smMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+                    const botSphere = new THREE.Mesh(new THREE.SphereGeometry(14, 8, 8), smMat);
+                    botSphere.position.y = 14;
+                    smGroup.add(botSphere);
+
+                    const topSphere = new THREE.Mesh(new THREE.SphereGeometry(10, 8, 8), smMat);
+                    topSphere.position.y = 32;
+                    smGroup.add(topSphere);
+
+                    smGroup.position.set(ox, 0, oz);
+                    this.scene.add(smGroup);
+                    this.obstacleMeshes.push(smGroup);
+                } else {
+                    // Boshqa tosh / devor to'siqlari
+                    const bGeo = new THREE.BoxGeometry(ow, 30, oh);
+                    const bMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
+                    const bMesh = new THREE.Mesh(bGeo, bMat);
+                    bMesh.position.set(ox, 15, oz);
+                    bMesh.castShadow = true;
+                    this.scene.add(bMesh);
+                    this.obstacleMeshes.push(bMesh);
                 }
-
-                this.scene.add(fortMesh);
-                this.obstacleMeshes.push(fortMesh);
-            } else if (obs.type === 'tnt') {
-                // 3D Qizil TNT bloki
-                const tntGeo = new THREE.BoxGeometry(obs.width, 32, obs.height);
-                const tntMatArray = [
-                    new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
-                    new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
-                    new THREE.MeshStandardMaterial({ color: 0x991b1b }), // usti
-                    new THREE.MeshStandardMaterial({ color: 0x7f1d1d }), // pasti
-                    new THREE.MeshStandardMaterial({ map: this.textures.tntSide }),
-                    new THREE.MeshStandardMaterial({ map: this.textures.tntSide })
-                ];
-                const tntMesh = new THREE.Mesh(tntGeo, tntMatArray);
-                tntMesh.position.set(ox, 16, oz);
-                tntMesh.castShadow = true;
-                this.scene.add(tntMesh);
-                this.obstacleMeshes.push(tntMesh);
-            } else if (obs.type === 'chest') {
-                // 3D Yog'och Sandiq (Chest)
-                const chestGeo = new THREE.BoxGeometry(obs.width, 28, obs.height);
-                const chestMat = new THREE.MeshStandardMaterial({ map: this.textures.chestSide });
-                const chestMesh = new THREE.Mesh(chestGeo, chestMat);
-                chestMesh.position.set(ox, 14, oz);
-                chestMesh.castShadow = true;
-                this.scene.add(chestMesh);
-                this.obstacleMeshes.push(chestMesh);
-            } else {
-                // Boshqa tosh to'siqlar
-                const bGeo = new THREE.BoxGeometry(obs.width, 30, obs.height);
-                const bMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.9 });
-                const bMesh = new THREE.Mesh(bGeo, bMat);
-                bMesh.position.set(ox, 15, oz);
-                bMesh.castShadow = true;
-                this.scene.add(bMesh);
-                this.obstacleMeshes.push(bMesh);
+            } catch (err) {
+                console.warn("To'siq 3D render xatosi:", err);
             }
         }
     }
@@ -912,29 +969,32 @@ class SnowClash3D {
     // ==============================================================
     render() {
         if (!this.renderer || !this.scene || !this.camera) return;
-
-        // 1. Bulutlarni sekin harakatlantirish
-        for (let c of this.cloudMeshes) {
-            c.position.x += c.userData.speed;
-            if (c.position.x > this.game.width) {
-                c.position.x = -this.game.width;
+        try {
+            // 1. Bulutlarni sekin harakatlantirish
+            for (let c of this.cloudMeshes) {
+                c.position.x += c.userData.speed;
+                if (c.position.x > this.game.width) {
+                    c.position.x = -this.game.width;
+                }
             }
+
+            // 2. Personajlarni yangilash
+            this.updatePlayers();
+
+            // 3. To'plar va o'qlarni yangilash
+            this.updateProjectiles();
+
+            // 4. Tangalarni yangilash
+            this.updateCoins();
+
+            // 5. Kamerani yangilash
+            this.updateCamera();
+
+            // 6. WebGL 3D Chizish
+            this.renderer.render(this.scene, this.camera);
+        } catch (err) {
+            console.warn('[ThreeEngine] Render frame warning:', err);
         }
-
-        // 2. Personajlarni yangilash
-        this.updatePlayers();
-
-        // 3. To'plar va o'qlarni yangilash
-        this.updateProjectiles();
-
-        // 4. Tangalarni yangilash
-        this.updateCoins();
-
-        // 5. Kamerani yangilash
-        this.updateCamera();
-
-        // 6. WebGL 3D Chizish
-        this.renderer.render(this.scene, this.camera);
     }
 }
 

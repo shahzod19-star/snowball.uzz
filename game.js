@@ -673,8 +673,15 @@ class SnowClashGame {
         this.players.clear();
         this.players.set(this.playerId, this.localPlayer);
 
-        document.getElementById('hudPlayerName').textContent = this.playerName;
-        document.getElementById('hudRoomTag').textContent = this.getModeLabel(this.gameMode);
+        const inGameHUD = document.getElementById('inGameHUD');
+        if (inGameHUD) inGameHUD.classList.remove('hidden');
+        const mainLobby = document.getElementById('mainLobbyScreen');
+        if (mainLobby) mainLobby.classList.add('hidden');
+
+        const hudPlayerName = document.getElementById('hudPlayerName');
+        if (hudPlayerName) hudPlayerName.textContent = this.playerName;
+        const hudRoomTag = document.getElementById('hudRoomTag');
+        if (hudRoomTag) hudRoomTag.textContent = this.getModeLabel(this.gameMode);
         
         const hudCoins = document.getElementById('hudCoinsText');
         if (hudCoins) hudCoins.textContent = this.coins;
@@ -686,7 +693,7 @@ class SnowClashGame {
 
         // Qurol va Qor rejimi HUD elementlarini sozlash
         const hudGunAmmo = document.getElementById('hudGunAmmoInventory');
-        const hudSnowSlots = document.getElementById('hudSnowballSlots');
+        const hudSnowSlots = document.getElementById('hudSnowballInventory') || document.getElementById('hudSnowballSlots');
         const hudCraftGuide = document.getElementById('guideCraftOrReload');
         const mobileCraftBtn = document.getElementById('btnMobileCraft');
 
@@ -1656,6 +1663,9 @@ class SnowClashGame {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
+
+        const inGameHUD = document.getElementById('inGameHUD');
+        if (inGameHUD) inGameHUD.classList.add('hidden');
 
         const mobileLayer = document.getElementById('mobileControlsLayer');
         if (mobileLayer) mobileLayer.classList.remove('active');

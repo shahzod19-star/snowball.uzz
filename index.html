@@ -23,7 +23,7 @@
     </div>
 
     <!-- O'YIN ICHIDAGI HUD (Jang paytida ko'rinadi) -->
-    <div class="ui-overlay" id="inGameHUD">
+    <div class="ui-overlay hidden" id="inGameHUD">
         <header class="hud-top">
             <div class="hud-title-badge interactive">
                 <span>❄️</span>
@@ -47,7 +47,6 @@
             </button>
 
             <div class="hud-controls interactive">
-                <button class="icon-btn" id="btnInGameTest" title="Tizim testini o'tkazish (Diagnostics)">🧪</button>
                 <button class="icon-btn" id="btnFullscreen" title="To'liq ekran (Fullscreen)">⛶</button>
                 <button class="icon-btn" id="btnMusic" title="Musiqa (Yoqish/O'chirish)">🎵</button>
                 <button class="icon-btn" id="btnSfx" title="Ovoz effektlari (Yoqish/O'chirish)">🔊</button>
@@ -63,6 +62,7 @@
                 <div class="player-info-row">
                     <span class="player-name-hud" id="hudPlayerName">QorJangchisi</span>
                     <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="hudCoinsContainer" style="color: #ffd166; font-size: 0.85rem; font-weight: 800;">🪙 <span id="hudCoinsText">100</span></span>
                         <span id="hudShieldText" style="font-weight: 800; font-size: 0.85rem; color: #00f5d4; display: none;">🛡️ 0 Qalqon</span>
                         <span id="hudHpText" style="font-weight: 800; font-size: 0.9rem; color: #70d6ff;">100 HP</span>
                     </div>
@@ -180,9 +180,6 @@
             <div class="lobby-top-right">
                 <button class="btn-room-action btn-upgrades-glow" id="btnOpenUpgrades" style="padding: 7px 12px; width: auto; font-size: 0.88rem; background: linear-gradient(135deg, #ffd166, #ff9e00); color: #081324; font-weight: 800; border: none;">
                     ⚡ Kuchaytirish <span class="upgrade-pts-badge" id="upgradePointsBadge">1</span>
-                </button>
-                <button class="btn-room-action" id="btnOpenDiagnostics" style="padding: 7px 12px; width: auto; font-size: 0.88rem; background: linear-gradient(135deg, #06d6a0, #00b4d8); color: #081324; font-weight: 800; border: none;" title="O'yin tizimlarini to'liq tekshirish (Testoviy Rejim)">
-                    🧪 Test Rejimi
                 </button>
                 <button class="btn-room-action" id="btnOpenShop" style="padding: 7px 12px; width: auto; font-size: 0.88rem;">
                     🛒 Do'kon
@@ -641,47 +638,6 @@
             <button class="btn-action-big play" data-close="upgradesModal" style="width: 100%; margin-top: 14px;">
                 Yopish va Jang Qilish
             </button>
-        </div>
-    </div>
-
-    <!-- 13. DIAGNOSTIKA VA TEST REJIMI (TEST SUITE) MODALI -->
-    <div class="modal-backdrop interactive hidden" id="diagnosticsModal">
-        <div class="modal-card" style="max-width: 680px;">
-            <button class="modal-close-btn" data-close="diagnosticsModal">✕</button>
-            <h2 style="display: flex; align-items: center; gap: 8px;">
-                <span>🧪</span> O'YIN TIZIMLARI TEST REJIMI (DIAGNOSTICS)
-            </h2>
-            <p class="modal-subtitle">
-                O'yindagi harakat, to'siqlar, qurol va qor rejimlari, 1-litso va 2-litso 3D kameralari to'liq sinovdan o'tkaziladi.
-            </p>
-
-            <div class="diagnostics-summary-bar" id="diagnosticsSummaryBar" style="display: flex; gap: 10px; margin: 12px 0; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="flex: 1; text-align: center;">
-                    <span style="font-size: 0.8rem; color: #94a3b8; display: block;">Jami Testlar</span>
-                    <strong style="font-size: 1.2rem; color: #70d6ff;" id="diagTotalTests">0</strong>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <span style="font-size: 0.8rem; color: #94a3b8; display: block;">Muvaffaqiyatli</span>
-                    <strong style="font-size: 1.2rem; color: #06d6a0;" id="diagPassedTests">0</strong>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <span style="font-size: 0.8rem; color: #94a3b8; display: block;">Xatolar</span>
-                    <strong style="font-size: 1.2rem; color: #ff5964;" id="diagFailedTests">0</strong>
-                </div>
-            </div>
-
-            <div class="diagnostics-results-box" id="diagnosticsResultBox" style="max-height: 280px; overflow-y: auto; background: rgba(10, 15, 29, 0.85); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 6px;">
-                <!-- Test natijalari JS orqali joylanadi -->
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 14px;">
-                <button class="btn-action-big" id="btnRerunDiagnostics" style="flex: 1; background: linear-gradient(135deg, #06d6a0, #00b4d8); color: #081324; font-weight: 800;">
-                    🔄 Testni Qayta O'tkazish
-                </button>
-                <button class="btn-action-big play" id="btnLaunchTestPlay" style="flex: 1;">
-                    🎮 Sinov Jangiga Kirish
-                </button>
-            </div>
         </div>
     </div>
 

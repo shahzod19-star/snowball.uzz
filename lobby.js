@@ -376,92 +376,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Diagnostika va Test Rejimi (Diagnostics Modal)
-    const diagnosticsModal = document.getElementById('diagnosticsModal');
-    const diagTotalTests = document.getElementById('diagTotalTests');
-    const diagPassedTests = document.getElementById('diagPassedTests');
-    const diagFailedTests = document.getElementById('diagFailedTests');
-    const diagnosticsResultBox = document.getElementById('diagnosticsResultBox');
-    const btnOpenDiagnostics = document.getElementById('btnOpenDiagnostics');
-    const btnInGameTest = document.getElementById('btnInGameTest');
-    const btnRerunDiagnostics = document.getElementById('btnRerunDiagnostics');
-    const btnLaunchTestPlay = document.getElementById('btnLaunchTestPlay');
-
-    function renderDiagnosticsUI() {
-        if (!game || typeof game.runSelfDiagnostics !== 'function') return;
-        const res = game.runSelfDiagnostics();
-        if (diagTotalTests) diagTotalTests.textContent = res.total;
-        if (diagPassedTests) diagPassedTests.textContent = res.passed;
-        if (diagFailedTests) diagFailedTests.textContent = res.failed;
-
-        if (diagnosticsResultBox) {
-            diagnosticsResultBox.innerHTML = '';
-            res.results.forEach(item => {
-                const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.alignItems = 'center';
-                row.style.justifyContent = 'space-between';
-                row.style.padding = '6px 10px';
-                row.style.borderRadius = '6px';
-                row.style.background = item.passed ? 'rgba(6, 214, 160, 0.12)' : 'rgba(255, 89, 100, 0.18)';
-                row.style.borderLeft = item.passed ? '4px solid #06d6a0' : '4px solid #ff5964';
-
-                const left = document.createElement('span');
-                left.style.color = item.passed ? '#d8f3dc' : '#ffccd5';
-                left.innerHTML = `<strong>${item.name}:</strong> <span style="font-size: 0.8rem; opacity: 0.85;">${item.details}</span>`;
-
-                const badge = document.createElement('span');
-                badge.style.padding = '2px 8px';
-                badge.style.borderRadius = '4px';
-                badge.style.fontSize = '0.75rem';
-                badge.style.fontWeight = '700';
-                badge.style.background = item.passed ? '#06d6a0' : '#ff5964';
-                badge.style.color = '#081324';
-                badge.textContent = item.passed ? 'PASS ✓' : 'FAIL ✗';
-
-                row.appendChild(left);
-                row.appendChild(badge);
-                diagnosticsResultBox.appendChild(row);
-            });
-        }
-    }
-
-    if (btnOpenDiagnostics) {
-        btnOpenDiagnostics.addEventListener('click', () => {
-            renderDiagnosticsUI();
-            openModal(diagnosticsModal);
-        });
-    }
-
-    if (btnInGameTest) {
-        btnInGameTest.addEventListener('click', () => {
-            renderDiagnosticsUI();
-            openModal(diagnosticsModal);
-        });
-    }
-
-    if (btnRerunDiagnostics) {
-        btnRerunDiagnostics.addEventListener('click', () => {
-            renderDiagnosticsUI();
-        });
-    }
-
-    if (btnLaunchTestPlay) {
-        btnLaunchTestPlay.addEventListener('click', () => {
-            closeModal(diagnosticsModal);
-            game.startMatch({
-                name: playerName + '_Tester',
-                color: playerColor,
-                characterType: characterType,
-                battleType: selectedBattleType,
-                mode: '1v1',
-                map: selectedBattleType === 'gun' ? 'warzone' : 'wonderland',
-                isMultiplayer: false,
-                useBots: true
-            });
-        });
-    }
-
     settingMusicSelect.addEventListener('change', (e) => {
         sound.setTrack(parseInt(e.target.value));
         updateMusicUI();
@@ -1105,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (game.timerInterval) clearInterval(game.timerInterval);
         const mobileLayer = document.getElementById('mobileControlsLayer');
         if (mobileLayer) mobileLayer.classList.remove('active');
+        if (inGameHUD) inGameHUD.classList.add('hidden');
         mainLobbyScreen.classList.remove('hidden');
     });
 
@@ -1128,6 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (game.timerInterval) clearInterval(game.timerInterval);
         const mobileLayer = document.getElementById('mobileControlsLayer');
         if (mobileLayer) mobileLayer.classList.remove('active');
+        if (inGameHUD) inGameHUD.classList.add('hidden');
         mainLobbyScreen.classList.remove('hidden');
     });
 
