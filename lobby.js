@@ -1153,14 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            if (game.isRunning && game.isPaused) {
-                e.preventDefault();
-                game.togglePause();
-            }
-        }
-    });
+    // Enter tugmasi o'yinda otish uchun ishlatiladi (game.js boshqaradi)
 
     document.body.addEventListener('click', () => {
         if (sound) sound.init();

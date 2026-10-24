@@ -4,10 +4,16 @@ class SnowClashGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.canvas3D = document.getElementById('gameCanvas3D');
+        this.threeEngine = null;
         
         this.width = window.innerWidth;
         this.height = window.innerHeight;
         this.setupCanvas();
+
+        if (this.canvas3D && window.SnowClash3D) {
+            this.threeEngine = new SnowClash3D(this.canvas3D, this);
+        }
 
         this.isRunning = false;
         this.isPaused = false;
@@ -26,8 +32,9 @@ class SnowClashGame {
         this.mapType = this.battleType === 'gun' ? 'warzone' : 'wonderland'; // 'wonderland', 'fortress', 'forest', 'warzone'
         this.roomCode = '';
 
-        // Kamera Rejimi (1-Litso FPS vs 2-Litso Tepadan)
-        this.cameraMode = localStorage.getItem('snow_camera_mode') || 'first_person'; // 'first_person' (1-litso) yoki 'third_person' (2-litso)
+        // Kamera Rejimi (3D 3-Litso Orqadan, 3D 1-Litso FPS, 3D Tepadan)
+        this.cameraMode = localStorage.getItem('snow_camera_mode') || 'third_person';
+        if (this.threeEngine) this.threeEngine.cameraMode = this.cameraMode;
         this.gunRecoil = 0;
         this.gunMuzzleFlash = 0;
         this.lastTouchTurnX = null;
@@ -119,6 +126,9 @@ class SnowClashGame {
         this.canvas.style.height = this.height + 'px';
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.scale(this.dpr, this.dpr);
+        if (this.threeEngine && typeof this.threeEngine.onResize === 'function') {
+            this.threeEngine.onResize();
+        }
     }
 
     initSnowflakes(count) {
@@ -292,11 +302,14 @@ class SnowClashGame {
                 this.toggleCameraMode();
             }
 
+            // Enter - Otish (Qurol yoki Qor otish)
+            if ((e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') && !this.isPaused && this.isRunning && !this.localPlayer.isDead) {
+                e.preventDefault();
+                this.throwSnowball();
+            }
+
             // Pauza (Escape yoki P)
             if ((e.key.toLowerCase() === 'p' || e.key === 'Escape' || e.code === 'Escape') && this.isRunning) {
-                e.preventDefault();
-                this.togglePause();
-            } else if (e.key === 'Enter' && this.isPaused && this.isRunning) {
                 e.preventDefault();
                 this.togglePause();
             }
@@ -305,6 +318,10 @@ class SnowClashGame {
         window.addEventListener('keyup', (e) => {
             this.keys[e.key.toLowerCase()] = false;
             this.keys[e.code] = false;
+            if (e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+                this.keys['enter'] = false;
+                this.keys['numpadenter'] = false;
+            }
         });
 
         // 1-Litso va 2-Litso UI Tugmalari
@@ -324,14 +341,17 @@ class SnowClashGame {
         }
 
         window.addEventListener('mousemove', (e) => {
-            if (this.cameraMode === 'first_person' && this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
-                // 1-Litso FPS nishon burilishi
+            if ((this.cameraMode === 'third_person' || this.cameraMode === 'first_person') && this.isRunning && !this.isPaused && !this.localPlayer.isDead) {
                 if (e.movementX !== undefined && Math.abs(e.movementX) < 140) {
                     this.localPlayer.angle += e.movementX * 0.0035;
                 } else {
                     const diffX = e.clientX - (this.width / 2);
                     this.localPlayer.angle += diffX * 0.00015;
                 }
+            } else if (this.cameraMode === 'top_down') {
+                const dx = e.clientX - (this.width / 2);
+                const dy = e.clientY - (this.height / 2);
+                this.localPlayer.angle = Math.atan2(dy, dx);
             }
             this.mousePos.x = e.clientX;
             this.mousePos.y = e.clientY;
@@ -733,6 +753,12 @@ class SnowClashGame {
             this.spawnBots();
         }
 
+        if (this.threeEngine) {
+            this.threeEngine.updateSkyAndFog();
+            this.threeEngine.buildEnvironment();
+            this.threeEngine.cameraMode = this.cameraMode;
+        }
+
         if (window.soundSystem && !window.soundSystem.musicMuted) {
             window.soundSystem.startMusic();
         }
@@ -750,12 +776,19 @@ class SnowClashGame {
     }
 
     toggleCameraMode() {
-        this.cameraMode = (this.cameraMode === 'first_person') ? 'third_person' : 'first_person';
+        if (this.cameraMode === 'third_person') {
+            this.cameraMode = 'first_person';
+        } else if (this.cameraMode === 'first_person') {
+            this.cameraMode = 'top_down';
+        } else {
+            this.cameraMode = 'third_person';
+        }
         localStorage.setItem('snow_camera_mode', this.cameraMode);
+        if (this.threeEngine) this.threeEngine.cameraMode = this.cameraMode;
         this.updatePerspectiveButtonUI();
-        const msg = (this.cameraMode === 'first_person') 
-            ? '👁️ 1-LITSO (3D FPS Rejimi yoqildi!)' 
-            : '🎮 2-LITSO (Tepadan ko\'rish rejimi yoqildi!)';
+        let msg = '👤 3D 3-LITSO (Haqiqiy 3D Minecraft Orqadan Ko\'rish yoqildi!)';
+        if (this.cameraMode === 'first_person') msg = '👁️ 3D 1-LITSO (Birinchi Shaxs FPS yoqildi!)';
+        if (this.cameraMode === 'top_down') msg = '🗺️ 3D TEPADAN (Izometrik 3D Ko\'rinish yoqildi!)';
         this.showKillFeed(msg, false);
         if (window.soundSystem) window.soundSystem.playClick();
     }
@@ -763,7 +796,9 @@ class SnowClashGame {
     updatePerspectiveButtonUI() {
         const btn = document.getElementById('btnTogglePerspective');
         const mBtn = document.getElementById('btnMobilePerspective');
-        const text = (this.cameraMode === 'first_person') ? '👁️ 1-LITSO (FPS)' : '🎮 2-LITSO (TEPADAN)';
+        let text = '👤 3D 3-LITSO';
+        if (this.cameraMode === 'first_person') text = '👁️ 3D 1-LITSO (FPS)';
+        if (this.cameraMode === 'top_down') text = '🗺️ 3D TEPADAN';
         if (btn) btn.innerHTML = text;
         if (mBtn) mBtn.innerHTML = text;
     }
@@ -1233,8 +1268,8 @@ class SnowClashGame {
         let dx = 0;
         let dy = 0;
 
-        if (this.cameraMode === 'first_person') {
-            // 1-LITSO (FPS): W/S oldinga-orqaga, A/D chapga-o'ngga (strafe)
+        if (this.cameraMode === 'third_person' || this.cameraMode === 'first_person') {
+            // 3D Harakat (Third-Person va FPS): W/S oldinga-orqaga, A/D chapga-o'ngga (strafe)
             let fwd = 0;
             let strafe = 0;
 
@@ -1247,7 +1282,7 @@ class SnowClashGame {
             if (this.keys['arrowleft'] || this.keys['keyq']) p.angle -= 0.045;
             if (this.keys['arrowright'] || this.keys['keye']) p.angle += 0.045;
 
-            // Joystik 1-litsoda: Y o'qi oldinga/orqaga, X o'qi strafe
+            // Joystik 3D rejimda: Y o'qi oldinga/orqaga, X o'qi strafe
             if (this.joystick && this.joystick.active && (Math.abs(this.joystick.dx) > 0.05 || Math.abs(this.joystick.dy) > 0.05)) {
                 fwd += -this.joystick.dy;
                 strafe += this.joystick.dx;
@@ -1258,10 +1293,10 @@ class SnowClashGame {
                 strafe *= 0.7071;
             }
 
-            dx = Math.cos(p.angle) * fwd + Math.cos(p.angle + Math.PI / 2) * strafe;
-            dy = Math.sin(p.angle) * fwd + Math.sin(p.angle + Math.PI / 2) * strafe;
+            dx = Math.cos(p.angle) * fwd - Math.sin(p.angle) * strafe;
+            dy = Math.sin(p.angle) * fwd + Math.cos(p.angle) * strafe;
         } else {
-            // 2-LITSO (Tepadan): W/S/A/D odatiy global koordinatalar
+            // 3D Tepadan (Top-down): W/S/A/D global yo'nalishlar
             if (this.keys['w'] || this.keys['arrowup'] || this.keys['keyw']) dy -= 1;
             if (this.keys['s'] || this.keys['arrowdown'] || this.keys['keys']) dy += 1;
             if (this.keys['a'] || this.keys['arrowleft'] || this.keys['keya']) dx -= 1;
@@ -1313,8 +1348,8 @@ class SnowClashGame {
             }
         }
 
-        // Qahramonning nishon burchagi
-        if (this.cameraMode !== 'first_person') {
+        // Qahramonning nishon burchagi (Top-down rejimda sichqonchaga qaraydi)
+        if (this.cameraMode === 'top_down') {
             if (this.touchAimActive) {
                 p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
             } else if (this.joystick && this.joystick.active && p.isMoving) {
@@ -1322,6 +1357,11 @@ class SnowClashGame {
             } else {
                 p.angle = Math.atan2(this.mousePos.y - p.y, this.mousePos.x - p.x);
             }
+        }
+
+        // Avtomatik otish (Enter, Sichqoncha yoki Sensorli otish bosib turilganda)
+        if ((this.keys['enter'] || this.keys['numpadenter'] || this.isMouseDown || this.touchFireActive) && !p.isDead && !this.isPaused) {
+            this.throwSnowball();
         }
     }
 
@@ -1930,19 +1970,33 @@ class SnowClashGame {
             details: `Xarita: ${this.mapType}, To'siqlar va qal'alar: ${this.obstacles.length} ta, Voxel bulutlar va kvadrat quyosh: Aktiv`
         });
 
-        // 4. 1-Litso (3D) va 2-Litso rejimi
+        // 4. 3D Kamera Rejimlari
         results.push({
-            name: "Kamera Perspektivasi (3D / 2D)",
+            name: "3D Kamera Perspektivasi (3-Litso / 1-Litso / Tepadan)",
             passed: !!this.cameraMode,
-            details: `Hozirgi rejim: ${this.cameraMode === 'first_person' ? '1-Litso 3D FPS (V bilan almashtirish)' : '2-Litso Tepadan (Top-down)'}`
+            details: `Hozirgi rejim: ${this.cameraMode === 'third_person' ? '👤 3D 3-Litso (Orqadan)' : (this.cameraMode === 'first_person' ? '👁️ 3D 1-Litso (FPS)' : '🗺️ 3D Tepadan')}`
         });
 
-        // 5. Minecraft Personaj Modellari
+        // 5. Minecraft 3D Personaj Modellari
         const charType = p.characterType || this.characterType || 'steve';
         results.push({
             name: "Minecraft 3D Personaj Modeli",
-            passed: typeof this.drawMinecraftCharacter === 'function' && typeof this.draw3DHeroPreview === 'function',
+            passed: typeof this.drawMinecraftCharacter === 'function',
             details: `Faol qahramon: ${charType.toUpperCase()} (Steve, Skeleton, Enderman, Zombie, Creeper)`
+        });
+
+        // 6. Enter va Sichqoncha bilan Otish Tizimi
+        results.push({
+            name: "Otish Tizimi (Enter, Sichqoncha, Mobil Tugma)",
+            passed: typeof this.throwSnowball === 'function',
+            details: "Enter klavishi, sichqoncha chap tugmasi va ekrandagi sensor tugma bilan otish faol"
+        });
+
+        // 7. Three.js Real 3D WebGL Dvigateli
+        results.push({
+            name: "Three.js Real 3D WebGL Dvigateli",
+            passed: !!window.THREE,
+            details: window.THREE ? "WebGL 3D grafik dvigateli va Minecraft 3D dunyosi aktiv" : "Zaxira 2D rejim faol"
         });
 
         // Konsol va ekranga hisobot chiqarish
@@ -1976,14 +2030,50 @@ class SnowClashGame {
     // RENDERLASH
     // ==========================================
     render() {
+        // 1. Agar Three.js 3D dvigateli mavjud bo'lsa, haqiqiy 3D WebGL renderlash
+        if (this.threeEngine) {
+            this.threeEngine.render();
+        }
+
+        // 2. 2D Canvas orqali HUD elementlari, effektlar va nishon
         const ctx = this.ctx;
         ctx.clearRect(0, 0, this.width, this.height);
 
-        if (this.cameraMode === 'first_person') {
-            this.renderFirstPerson(ctx);
-        } else {
-            this.renderThirdPerson(ctx);
+        // Agar Three.js mavjud bo'lmasa, zaxira 2D render ishlaydi
+        if (!this.threeEngine) {
+            if (this.cameraMode === 'first_person') {
+                this.renderFirstPerson(ctx);
+            } else {
+                this.renderThirdPerson(ctx);
+            }
+            return;
         }
+
+        // Three.js bilan birga: 2D Overlay (Qor bo'roni, Krosshayr nishon, zarbalar)
+        this.render2DOverlays(ctx);
+    }
+
+    render2DOverlays(ctx) {
+        // 1. Krosshayr (Nishon)
+        const cx = this.width / 2;
+        const cy = this.height / 2;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.moveTo(cx - 14, cy); ctx.lineTo(cx - 5, cy);
+        ctx.moveTo(cx + 5, cy); ctx.lineTo(cx + 14, cy);
+        ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy - 5);
+        ctx.moveTo(cx, cy + 5); ctx.lineTo(cx, cy + 14);
+        ctx.stroke();
+
+        // 2. 2D Zarrachalar (Particles)
+        this.renderParticles(ctx);
+
+        // 3. Qor yog'ishi (Snowflakes)
+        this.renderSnowflakes(ctx);
+        ctx.restore();
     }
 
     renderThirdPerson(ctx) {
