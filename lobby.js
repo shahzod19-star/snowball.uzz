@@ -54,15 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // -------------------------------------------------------------
     let previewFrame = 0;
     function renderHeroPreview() {
+        if (!heroPreviewCanvas || !heroCtx) return;
         heroCtx.clearRect(0, 0, 180, 200);
         previewFrame += 0.035;
         const sq = window.shopAndQuests;
         const currentSkin = sq ? sq.equippedSkin : (localStorage.getItem('snow_equipped_skin') || 'steve');
         const currentBall = sq ? sq.equippedBall : (localStorage.getItem('snow_equipped_ball') || 'classic');
 
-        if (game && typeof game.draw3DHeroPreview === 'function') {
-            game.draw3DHeroPreview(heroCtx, 90, 160, characterType, currentSkin, currentBall, previewFrame, selectedBattleType);
-        } else if (game && typeof game.drawMinecraftCharacter === 'function') {
+        const activeGame = window.snowClashGame || game;
+        if (activeGame && typeof activeGame.draw3DHeroPreview === 'function') {
+            activeGame.draw3DHeroPreview(heroCtx, 90, 150, characterType, currentSkin, currentBall, previewFrame, selectedBattleType);
+        } else if (activeGame && typeof activeGame.drawMinecraftCharacter === 'function') {
             const p = {
                 x: 90,
                 y: 110,
@@ -82,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 isDead: false,
                 throwAnim: 0
             };
-            game.drawMinecraftCharacter(heroCtx, p);
+            activeGame.drawMinecraftCharacter(heroCtx, p);
         }
 
         requestAnimationFrame(renderHeroPreview);
@@ -120,9 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.shopAndQuests) {
             window.shopAndQuests.equippedSkin = characterType;
         }
-        if (game.localPlayer) {
-            game.localPlayer.characterType = characterType;
-            game.localPlayer.skin = characterType;
+        const activeGame = window.snowClashGame || game;
+        if (activeGame && activeGame.localPlayer) {
+            activeGame.localPlayer.characterType = characterType;
+            activeGame.localPlayer.skin = characterType;
         }
     }
 

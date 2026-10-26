@@ -66,26 +66,27 @@ class SnowClash3D {
         this.camera = new THREE.PerspectiveCamera(65, this.width / this.height, 1, 3000);
         this.camera.position.set(0, 100, 200);
 
-        // 4. Chiroqlar (Lighting)
-        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        // 4. Chiroqlar (Lighting) - Yorug', toza va yoqimli Minecraft yoritishi
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
         this.scene.add(this.ambientLight);
 
-        const hemiLight = new THREE.HemisphereLight(0xb1e1ff, 0x3a404a, 0.45);
-        hemiLight.position.set(0, 200, 0);
+        const hemiLight = new THREE.HemisphereLight(0xcfe8ff, 0x64748b, 0.55);
+        hemiLight.position.set(0, 300, 0);
         this.scene.add(hemiLight);
 
-        this.sunLight = new THREE.DirectionalLight(0xfff5dd, 0.95);
-        this.sunLight.position.set(250, 400, 200);
+        this.sunLight = new THREE.DirectionalLight(0xfffaed, 1.25);
+        this.sunLight.position.set(250, 450, 200);
         this.sunLight.castShadow = true;
         this.sunLight.shadow.mapSize.width = 1024;
         this.sunLight.shadow.mapSize.height = 1024;
         this.sunLight.shadow.camera.near = 10;
-        this.sunLight.shadow.camera.far = 1200;
-        const d = 500;
+        this.sunLight.shadow.camera.far = 1400;
+        const d = 600;
         this.sunLight.shadow.camera.left = -d;
         this.sunLight.shadow.camera.right = d;
         this.sunLight.shadow.camera.top = d;
         this.sunLight.shadow.camera.bottom = -d;
+        this.sunLight.shadow.bias = -0.0004;
         this.scene.add(this.sunLight);
 
         // 5. Procedural Minecraft Teksturalar
@@ -100,24 +101,26 @@ class SnowClash3D {
 
     updateSkyAndFog() {
         if (!this.scene) return;
-        const isGun = this.game.battleType === 'gun';
-        const isNight = (this.game.timeOfDay === 'night');
-        const skyColor = isNight ? 0x070b19 : (isGun ? 0x1f242e : 0x78aaff);
-        const fogColor = isNight ? 0x070b19 : (isGun ? 0x1f242e : 0xa0c4f8);
+        const isNight = (this.game && this.game.timeOfDay === 'night');
+        
+        // Go'zal, toza va yoqimli Minecraft atmosferasi
+        // Kunduzi musaffo moviy osmon va yumshoq uzoq masofali ufq tumani
+        const skyColor = isNight ? 0x091227 : 0x78b6ff;
+        const fogColor = isNight ? 0x0d1a38 : 0xb8dafc;
         this.scene.background = new THREE.Color(skyColor);
-        this.scene.fog = new THREE.FogExp2(fogColor, isNight ? 0.0012 : 0.0016);
+        this.scene.fog = new THREE.Fog(fogColor, 750, 3000);
 
         if (this.ambientLight && this.sunLight) {
             if (isNight) {
-                this.ambientLight.color.setHex(0x1e293b);
-                this.ambientLight.intensity = 0.45;
-                this.sunLight.color.setHex(0x93c5fd);
-                this.sunLight.intensity = 0.65;
+                this.ambientLight.color.setHex(0x253555);
+                this.ambientLight.intensity = 0.55;
+                this.sunLight.color.setHex(0x9fc3ff);
+                this.sunLight.intensity = 0.85;
             } else {
                 this.ambientLight.color.setHex(0xffffff);
-                this.ambientLight.intensity = isGun ? 0.60 : 0.75;
-                this.sunLight.color.setHex(0xfff5dd);
-                this.sunLight.intensity = 1.15;
+                this.ambientLight.intensity = 0.85;
+                this.sunLight.color.setHex(0xfffaed);
+                this.sunLight.intensity = 1.25;
             }
         }
     }
@@ -269,26 +272,32 @@ class SnowClash3D {
             ctx.fillStyle = '#000000'; ctx.fillRect(w / 2 - 2, h / 2 - 2, 4, 4);
         });
 
-        // Tosh Qal'a (Cobblestone) Texture
+        // Tosh Qal'a (Cobblestone) Texture - Minecraft toza tosh bloklari uslubi
         this.textures.cobble = this.createCanvasTexture(64, 64, (ctx, w, h) => {
-            ctx.fillStyle = '#475569'; ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 3;
-            for (let y = 0; y < 64; y += 16) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(64, y); ctx.stroke();
-                const shift = (y % 32 === 0) ? 0 : 16;
-                for (let x = shift; x <= 64; x += 32) {
-                    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 16); ctx.stroke();
-                }
-            }
+            ctx.fillStyle = '#64748b'; ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(2, 2, 28, 12); ctx.fillRect(34, 2, 28, 12);
+            ctx.fillRect(2, 18, 12, 12); ctx.fillRect(18, 18, 28, 12); ctx.fillRect(50, 18, 12, 12);
+            ctx.fillRect(2, 34, 28, 12); ctx.fillRect(34, 34, 28, 12);
+            ctx.fillRect(2, 50, 20, 12); ctx.fillRect(26, 50, 26, 12); ctx.fillRect(56, 50, 6, 12);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(4, 4, 10, 2); ctx.fillRect(36, 4, 10, 2);
+            ctx.fillRect(20, 20, 10, 2); ctx.fillRect(4, 36, 10, 2);
         });
 
-        // Qor Zamin Texture
+        // Qor Zamin Texture - Go'zal toza oq qor va mayin soyalar
         this.textures.snow = this.createCanvasTexture(64, 64, (ctx, w, h) => {
-            ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, h);
-            ctx.fillStyle = '#e2e8f0';
-            for (let i = 0; i < 16; i++) {
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#f1f5f9';
+            for (let i = 0; i < 24; i++) {
                 const rx = (i * 17) % 64;
                 const ry = (i * 29) % 64;
+                ctx.fillRect(rx, ry, 4, 4);
+            }
+            ctx.fillStyle = '#e2e8f0';
+            for (let i = 0; i < 12; i++) {
+                const rx = (i * 23 + 7) % 64;
+                const ry = (i * 37 + 11) % 64;
                 ctx.fillRect(rx, ry, 3, 3);
             }
         });
@@ -303,11 +312,11 @@ class SnowClash3D {
         if (this.sunMesh) this.scene.remove(this.sunMesh);
         if (this.cloudsGroup) this.scene.remove(this.cloudsGroup);
 
-        const isGun = this.game.battleType === 'gun';
+        const isGun = (this.game && this.game.battleType === 'gun');
         const mapW = Math.max(1200, this.game.width);
         const mapH = Math.max(800, this.game.height);
 
-        // 1. Zamin (Ground Plane)
+        // 1. Zamin (Ground Plane) - Yorug', toza va yoqimli Minecraft maydoni
         const groundTex = isGun ? this.textures.cobble : this.textures.snow;
         groundTex.wrapS = THREE.RepeatWrapping;
         groundTex.wrapT = THREE.RepeatWrapping;
@@ -316,8 +325,8 @@ class SnowClash3D {
         const groundGeo = new THREE.PlaneGeometry(mapW * 1.5, mapH * 1.5);
         const groundMat = new THREE.MeshStandardMaterial({
             map: groundTex,
-            roughness: 0.85,
-            metalness: 0.1
+            roughness: 0.65,
+            metalness: 0.05
         });
         this.groundMesh = new THREE.Mesh(groundGeo, groundMat);
         this.groundMesh.rotation.x = -Math.PI / 2;
@@ -326,17 +335,17 @@ class SnowClash3D {
         this.scene.add(this.groundMesh);
 
         // 2. Kvadrat Minecraft Quyosh yoki Oy (Square Sun / Moon Mesh)
-        const isNight = (this.game.timeOfDay === 'night');
-        const sunGeo = new THREE.BoxGeometry(45, 45, 6);
-        const sunMat = new THREE.MeshBasicMaterial({ color: isNight ? 0xe2e8f0 : 0xffffff });
+        const isNight = (this.game && this.game.timeOfDay === 'night');
+        const sunGeo = new THREE.BoxGeometry(50, 50, 6);
+        const sunMat = new THREE.MeshBasicMaterial({ color: isNight ? 0xf1f5f9 : 0xfffae0 });
         this.sunMesh = new THREE.Mesh(sunGeo, sunMat);
-        this.moonMesh = isNight ? this.sunMesh : null;
+        this.moonMesh = isNight ? this.sunMesh : this.sunMesh;
         this.sunMesh.position.set(220, 380, -500);
         this.sunMesh.rotation.y = Math.PI * 0.15;
         this.scene.add(this.sunMesh);
 
         // Quyosh yoki Oy nuri (Aura Halo)
-        const haloGeo = new THREE.BoxGeometry(75, 75, 2);
+        const haloGeo = new THREE.BoxGeometry(80, 80, 2);
         const haloMat = new THREE.MeshBasicMaterial({
             color: isNight ? 0x60a5fa : 0xfff066,
             transparent: true,

@@ -3348,47 +3348,380 @@ class SnowClashGame {
     // =======================================================
     // PODIUMDAGI 3D AYLANMA MINECRAFT PREVIEWSI
     // =======================================================
+    // =======================================================
+    // PODIUMDAGI 3D AYLANMA MINECRAFT PREVIEWSI
+    // =======================================================
     draw3DHeroPreview(ctx, cx, cy, charType, skin, ball, frame, battleType) {
         ctx.save();
-        const rot = frame * 0.65;
-        const scale = 1.15;
-        const baseW = 42 * scale;
-        const baseH = 88 * scale;
+        const rot = frame * 0.85; // 360 daraja silliq aylanma
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        const absCos = Math.abs(cosR);
+        const absSin = Math.abs(sinR);
 
-        // 1. Tosh Podium (Stone Pedestal)
-        ctx.fillStyle = '#374151';
+        const type = charType || 'steve';
+        const isGun = (battleType === 'gun');
+        const scale = (type === 'enderman') ? 1.05 : 1.15;
+        const bob = Math.sin(frame * 2.4) * 3;
+
+        // 1. Tosh Podium (Minecraft Stone Pedestal with Neon Aura)
+        const pedestalY = cy + 18;
+        const glowRad = ctx.createRadialGradient(cx, pedestalY, 10, cx, pedestalY, 70);
+        glowRad.addColorStop(0, 'rgba(112, 214, 255, 0.45)');
+        glowRad.addColorStop(0.6, 'rgba(6, 214, 160, 0.2)');
+        glowRad.addColorStop(1, 'rgba(10, 24, 48, 0)');
+        ctx.fillStyle = glowRad;
         ctx.beginPath();
-        ctx.ellipse(cx, cy + 6, baseW * 1.1, baseW * 0.42, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, pedestalY, 68, 22, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#4b5563';
-        ctx.lineWidth = 3;
+
+        // Podium tagidagi tosh devor
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.ellipse(cx, pedestalY + 8, 52, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(cx - 52, pedestalY - 2, 104, 10);
+
+        // Podium ustki sirti
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.ellipse(cx, pedestalY - 2, 52, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        ctx.fillStyle = '#1f2937';
+        // Neon muzli ichki doira
+        ctx.strokeStyle = '#00f5d4';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.ellipse(cx, cy + 18, baseW * 1.3, baseW * 0.48, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.ellipse(cx, pedestalY - 2, 40, 13, 0, 0, Math.PI * 2);
+        ctx.stroke();
 
-        // 2. 3D Personaj
-        const bob = Math.sin(frame * 2) * 3;
-        const pY = cy - 20 + bob;
+        // 2. 3D Voxel Minecraft Personaj
+        const footY = pedestalY - 6 + bob;
+        const legH = (type === 'enderman' ? 44 : 32) * scale;
+        const legW = (type === 'enderman' ? 6 : 11) * scale;
+        const legD = (type === 'enderman' ? 6 : 10) * scale;
 
-        const fakePlayer = {
-            id: 'preview',
-            name: '',
-            team: 'blue',
-            color: '#4cc9f0',
-            characterType: charType || 'steve',
-            skin: skin || 'steve',
-            snowballs: 1,
-            hp: 100,
-            maxHp: 100,
-            shield: 0,
-            walkCycle: frame * 1.8,
-            isDead: false
+        const torsoH = (type === 'enderman' ? 38 : 30) * scale;
+        const torsoW = (type === 'enderman' ? 18 : 24) * scale;
+        const torsoD = (type === 'enderman' ? 10 : 12) * scale;
+
+        const headS = (type === 'enderman' ? 22 : 26) * scale;
+
+        const torsoBottomY = footY - legH;
+        const torsoTopY = torsoBottomY - torsoH;
+        const headBottomY = torsoTopY - 2;
+        const headCenterY = headBottomY - headS / 2;
+
+        // Ranglar palitrasi
+        let legColor = '#414bb2', legSide = '#313788', shoeColor = '#4b5563';
+        let torsoFront = '#00a8a8', torsoBack = '#008b8b', torsoSide = '#007070';
+        let skinTone = '#d7a17c', skinSide = '#be8563';
+        let hairColor = '#4a2c11', eyeColor = '#2563eb';
+
+        if (type === 'barbie') {
+            legColor = '#db2777'; legSide = '#be185d'; shoeColor = '#9d174d';
+            torsoFront = '#f472b6'; torsoBack = '#ec4899'; torsoSide = '#db2777';
+            skinTone = '#fed7aa'; skinSide = '#fcd34d';
+            hairColor = '#fde047'; eyeColor = '#38bdf8';
+        } else if (type === 'soldier') {
+            legColor = '#1a2e05'; legSide = '#142203'; shoeColor = '#09090b';
+            torsoFront = '#365314'; torsoBack = '#283618'; torsoSide = '#1a2e05';
+            skinTone = '#c68652'; skinSide = '#a86c3d';
+            hairColor = '#283618'; eyeColor = '#0f172a';
+        } else if (type === 'zombie') {
+            legColor = '#3d4380'; legSide = '#2f3468'; shoeColor = '#4b5563';
+            torsoFront = '#007788'; torsoBack = '#00606e'; torsoSide = '#004f5b';
+            skinTone = '#4f772d'; skinSide = '#3f5f24';
+            hairColor = '#283618'; eyeColor = '#0f1406';
+        } else if (type === 'skeleton') {
+            legColor = '#d1d5db'; legSide = '#9ca3af'; shoeColor = '#9ca3af';
+            torsoFront = '#e5e7eb'; torsoBack = '#d1d5db'; torsoSide = '#9ca3af';
+            skinTone = '#d1d5db'; skinSide = '#9ca3af';
+            hairColor = '#9ca3af'; eyeColor = '#111827';
+        } else if (type === 'enderman') {
+            legColor = '#08080c'; legSide = '#050508'; shoeColor = '#050508';
+            torsoFront = '#08080c'; torsoBack = '#08080c'; torsoSide = '#050508';
+            skinTone = '#08080c'; skinSide = '#050508';
+            hairColor = '#08080c'; eyeColor = '#e040fb';
+        } else if (type === 'creeper') {
+            legColor = '#2d6a4f'; legSide = '#1b4332'; shoeColor = '#1b4332';
+            torsoFront = '#38b000'; torsoBack = '#2d6a4f'; torsoSide = '#1b4332';
+            skinTone = '#38b000'; skinSide = '#2d6a4f';
+            hairColor = '#2d6a4f'; eyeColor = '#081c15';
+        }
+
+        if (skin === 'diamond_armor') {
+            torsoFront = '#00b4d8'; torsoBack = '#0096c7'; torsoSide = '#0077b6';
+            legColor = '#00b4d8'; legSide = '#0077b6';
+        }
+
+        // Yordamchi: 3D blok chizuvchi funksiya
+        const renderBox3D = (bx, by, bw, bh, bd, colFront, colBack, colSide, colTop) => {
+            const hw = (bw / 2) * absCos + (bd / 2) * absSin;
+            const topH = 6 * scale;
+            const x1 = bx - hw;
+            const x2 = bx + hw;
+
+            // Yon yoki asosiy qirra
+            const isFacingFront = cosR >= 0;
+            const mainColor = isFacingFront ? colFront : colBack;
+            const sideColor = colSide;
+
+            // Asosiy tanasi
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(x1, by - bh, hw * 2, bh);
+
+            // 3D Yon tomon soyasi (Depth shading)
+            if (absSin > 0.15) {
+                ctx.fillStyle = sideColor;
+                const sideW = hw * absSin * 0.9;
+                const sideX = (sinR > 0) ? (x2 - sideW) : x1;
+                ctx.fillRect(sideX, by - bh, sideW, bh);
+            }
+
+            // 3D Tepa yuzi (Isometric top face)
+            if (colTop) {
+                ctx.fillStyle = colTop;
+                ctx.beginPath();
+                ctx.ellipse(bx, by - bh, hw, topH, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         };
 
-        this.draw3DPlayer(ctx, fakePlayer, cx, pY, scale);
+        // ==========================================
+        // A. OYOQLAR (LEGS)
+        // ==========================================
+        const legSpacing = 6 * scale;
+        const leftLegX = cx - legSpacing * cosR;
+        const rightLegX = cx + legSpacing * cosR;
+
+        // Chap oyoq
+        renderBox3D(leftLegX, footY, legW, legH, legD, legColor, legColor, legSide, '#64748b');
+        // O'ng oyoq
+        renderBox3D(rightLegX, footY, legW, legH, legD, legColor, legColor, legSide, '#64748b');
+
+        // Poyabzallar
+        ctx.fillStyle = shoeColor;
+        ctx.fillRect(leftLegX - legW / 2, footY - 5 * scale, legW, 5 * scale);
+        ctx.fillRect(rightLegX - legW / 2, footY - 5 * scale, legW, 5 * scale);
+
+        // ==========================================
+        // B. TANA (TORSO)
+        // ==========================================
+        renderBox3D(cx, torsoBottomY, torsoW, torsoH, torsoD, torsoFront, torsoBack, torsoSide, torsoFront);
+
+        // Maxsus tana detallari
+        if (cosR > 0.15) {
+            if (type === 'steve') {
+                // Steve bo'yin o'yig'i (V-neck)
+                ctx.fillStyle = skinTone;
+                const vw = 8 * scale * cosR;
+                ctx.fillRect(cx - vw / 2, torsoTopY, vw, 6 * scale);
+            } else if (type === 'soldier') {
+                // Harbiy nimcha qora taktik chiziqlar
+                ctx.fillStyle = '#18181b';
+                const nw = 16 * scale * cosR;
+                ctx.fillRect(cx - nw / 2, torsoTopY + 2 * scale, nw, torsoH * 0.85);
+            } else if (type === 'skeleton') {
+                // Ochiq qovurg'a chiziqlari
+                ctx.fillStyle = '#1e293b';
+                const rw = 16 * scale * cosR;
+                ctx.fillRect(cx - rw / 2, torsoTopY + 4 * scale, rw, torsoH * 0.8);
+                ctx.fillStyle = '#f3f4f6';
+                ctx.fillRect(cx - 2 * scale, torsoTopY, 4 * scale, torsoH);
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillRect(cx - rw / 2, torsoTopY + (6 + i * 7) * scale, rw, 2.5 * scale);
+                }
+            } else if (type === 'creeper') {
+                // Creeper pikselli dog'lar
+                ctx.fillStyle = '#1b4332';
+                const cw = 6 * scale * cosR;
+                ctx.fillRect(cx - cw, torsoTopY + 8 * scale, cw, 6 * scale);
+                ctx.fillRect(cx + 2 * scale, torsoTopY + 16 * scale, cw, 6 * scale);
+            }
+        }
+
+        // ==========================================
+        // C. QO'LLAR VA QUROLLAR (ARMS & WEAPONS)
+        // ==========================================
+        const armW = (type === 'enderman' ? 5 : 8) * scale;
+        const armH = (type === 'enderman' ? 44 : 28) * scale;
+        const armD = (type === 'enderman' ? 5 : 8) * scale;
+        const armDist = (torsoW / 2 + armW / 2);
+
+        // Chap qo'l
+        const leftArmX = cx - armDist * cosR;
+        renderBox3D(leftArmX, torsoTopY + armH, armW, armH, armD, torsoFront, torsoBack, torsoSide, torsoFront);
+        ctx.fillStyle = skinTone;
+        ctx.fillRect(leftArmX - armW / 2, torsoTopY + armH - 7 * scale, armW, 7 * scale);
+
+        // O'ng qo'l (Qurol ushlagan qo'l)
+        const rightArmX = cx + armDist * cosR;
+        renderBox3D(rightArmX, torsoTopY + armH, armW, armH, armD, torsoFront, torsoBack, torsoSide, torsoFront);
+        ctx.fillStyle = skinTone;
+        ctx.fillRect(rightArmX - armW / 2, torsoTopY + armH - 7 * scale, armW, 7 * scale);
+
+        // Qo'ldagi qurol yoki qor to'pi (3D aylanishga qarab)
+        const handX = rightArmX + 3 * scale * cosR;
+        const handY = torsoTopY + armH - 3 * scale;
+
+        if (isGun) {
+            // AK-47 Avtomat yoki pistolet
+            ctx.save();
+            ctx.translate(handX, handY);
+            ctx.rotate(rot * 0.4 + 0.2);
+            // Qundoq
+            ctx.fillStyle = '#854d0e';
+            ctx.fillRect(-3 * scale, -2 * scale, 7 * scale, 12 * scale);
+            // Qora po'lat stvol va korpus
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(-2 * scale, -16 * scale, 5 * scale, 16 * scale);
+            ctx.fillRect(2 * scale, -8 * scale, 5 * scale, 8 * scale);
+            // Temir qirralar
+            ctx.fillStyle = '#71717a';
+            ctx.fillRect(-1 * scale, -18 * scale, 3 * scale, 4 * scale);
+            ctx.restore();
+        } else {
+            // Yorqin muz kristalli Qor to'pi
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00f5d4';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(handX + 2 * scale * sinR, handY, 7 * scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#bae6fd';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // ==========================================
+        // D. 3D BOSH (HEAD) - 100% MINECRAFT AYLANMA KUB
+        // ==========================================
+        renderBox3D(cx, headBottomY, headS, headS, headS, skinTone, hairColor, skinSide, hairColor);
+
+        // Old yuzi ko'rinayotganda (cosR > 0)
+        if (cosR > 0.05) {
+            const hx = cx - (headS / 2) * cosR;
+            const hy = headBottomY - headS;
+            const wR = headS * cosR;
+
+            if (type === 'steve') {
+                // Steve sochi
+                ctx.fillStyle = '#4a2c11';
+                ctx.fillRect(hx, hy, wR, headS * 0.28);
+                ctx.fillRect(hx, hy, wR * 0.18, headS * 0.52);
+                ctx.fillRect(hx + wR * 0.82, hy, wR * 0.18, headS * 0.52);
+                // Steve ko'zlari
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(hx + wR * 0.16, hy + headS * 0.44, wR * 0.24, headS * 0.15);
+                ctx.fillRect(hx + wR * 0.60, hy + headS * 0.44, wR * 0.24, headS * 0.15);
+                ctx.fillStyle = '#2563eb';
+                ctx.fillRect(hx + wR * 0.28, hy + headS * 0.44, wR * 0.12, headS * 0.15);
+                ctx.fillRect(hx + wR * 0.72, hy + headS * 0.44, wR * 0.12, headS * 0.15);
+                // Burun va lab
+                ctx.fillStyle = '#b46d3e';
+                ctx.fillRect(hx + wR * 0.40, hy + headS * 0.60, wR * 0.20, headS * 0.12);
+                ctx.fillStyle = '#582900';
+                ctx.fillRect(hx + wR * 0.35, hy + headS * 0.76, wR * 0.30, headS * 0.10);
+            } else if (type === 'barbie') {
+                // Barbie go'zal oltin sariq sochlari
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(hx, hy, wR, headS * 0.25);
+                ctx.fillRect(hx - 2 * scale * cosR, hy + headS * 0.15, wR * 0.22, headS * 0.95);
+                ctx.fillRect(hx + wR * 0.80, hy + headS * 0.15, wR * 0.22, headS * 0.95);
+                // Moviy go'zal ko'zlar
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(hx + wR * 0.16, hy + headS * 0.42, wR * 0.24, headS * 0.16);
+                ctx.fillRect(hx + wR * 0.60, hy + headS * 0.42, wR * 0.24, headS * 0.16);
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(hx + wR * 0.24, hy + headS * 0.42, wR * 0.16, headS * 0.16);
+                ctx.fillRect(hx + wR * 0.68, hy + headS * 0.42, wR * 0.16, headS * 0.16);
+                // Pushti yonoqlar va lab
+                ctx.fillStyle = '#f472b6';
+                ctx.fillRect(hx + wR * 0.14, hy + headS * 0.64, wR * 0.16, headS * 0.10);
+                ctx.fillRect(hx + wR * 0.70, hy + headS * 0.64, wR * 0.16, headS * 0.10);
+                ctx.fillStyle = '#f43f5e';
+                ctx.fillRect(hx + wR * 0.36, hy + headS * 0.74, wR * 0.28, headS * 0.12);
+            } else if (type === 'soldier') {
+                // Harbiy Camo dubulg'a
+                ctx.fillStyle = '#283618';
+                ctx.fillRect(hx - 2 * scale * cosR, hy - 2 * scale, wR + 4 * scale * cosR, headS * 0.38);
+                // Ko'zlar
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(hx + wR * 0.18, hy + headS * 0.42, wR * 0.22, headS * 0.12);
+                ctx.fillRect(hx + wR * 0.60, hy + headS * 0.42, wR * 0.22, headS * 0.12);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(hx + wR * 0.24, hy + headS * 0.42, wR * 0.12, headS * 0.12);
+                ctx.fillRect(hx + wR * 0.66, hy + headS * 0.42, wR * 0.12, headS * 0.12);
+                // Kamuflaj chiziq
+                ctx.fillStyle = '#365314';
+                ctx.fillRect(hx + wR * 0.12, hy + headS * 0.60, wR * 0.26, headS * 0.15);
+                ctx.fillRect(hx + wR * 0.58, hy + headS * 0.68, wR * 0.30, headS * 0.14);
+            } else if (type === 'zombie') {
+                // Yashil kalla va to'q ko'zlar
+                ctx.fillStyle = '#283618';
+                ctx.fillRect(hx, hy, wR, headS * 0.26);
+                ctx.fillStyle = '#0f1406';
+                ctx.fillRect(hx + wR * 0.18, hy + headS * 0.44, wR * 0.22, headS * 0.16);
+                ctx.fillRect(hx + wR * 0.60, hy + headS * 0.44, wR * 0.22, headS * 0.16);
+                ctx.fillStyle = '#1b3211';
+                ctx.fillRect(hx + wR * 0.36, hy + headS * 0.72, wR * 0.28, headS * 0.12);
+            } else if (type === 'skeleton') {
+                // Skelet ko'z chuqurlari va og'iz
+                ctx.fillStyle = '#111827';
+                ctx.fillRect(hx + wR * 0.15, hy + headS * 0.35, wR * 0.26, headS * 0.24);
+                ctx.fillRect(hx + wR * 0.59, hy + headS * 0.35, wR * 0.26, headS * 0.24);
+                ctx.fillRect(hx + wR * 0.26, hy + headS * 0.72, wR * 0.48, headS * 0.14);
+            } else if (type === 'enderman') {
+                // Enderman binafsharang porlovchi ko'zlari
+                ctx.fillStyle = '#e040fb';
+                ctx.shadowColor = '#e040fb';
+                ctx.shadowBlur = 12;
+                ctx.fillRect(hx + wR * 0.10, hy + headS * 0.45, wR * 0.32, headS * 0.12);
+                ctx.fillRect(hx + wR * 0.58, hy + headS * 0.45, wR * 0.32, headS * 0.12);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(hx + wR * 0.20, hy + headS * 0.47, wR * 0.12, headS * 0.08);
+                ctx.fillRect(hx + wR * 0.68, hy + headS * 0.47, wR * 0.12, headS * 0.08);
+                ctx.shadowBlur = 0;
+            } else if (type === 'creeper') {
+                // Mashhur Creeper g'amgin yuzi
+                ctx.fillStyle = '#081c15';
+                ctx.fillRect(hx + wR * 0.18, hy + headS * 0.25, wR * 0.22, headS * 0.22);
+                ctx.fillRect(hx + wR * 0.60, hy + headS * 0.25, wR * 0.22, headS * 0.22);
+                ctx.fillRect(hx + wR * 0.38, hy + headS * 0.47, wR * 0.24, headS * 0.30);
+                ctx.fillRect(hx + wR * 0.24, hy + headS * 0.62, wR * 0.52, headS * 0.22);
+            }
+        } else if (cosR < -0.05) {
+            // Orqa tomoni (Back Face) - Soch yoki dubulg'a
+            const hx = cx - (headS / 2) * absCos;
+            const hy = headBottomY - headS;
+            const wR = headS * absCos;
+            ctx.fillStyle = hairColor;
+            ctx.fillRect(hx, hy, wR, headS);
+            if (type === 'barbie') {
+                // Barbie uzun sochi orqadan to'liq tushgan
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(hx - 2 * scale * absCos, hy, wR + 4 * scale * absCos, headS * 1.35);
+            }
+        }
+
+        // Enderman atrofidagi binafsha zarralar (Floating Ender Particles)
+        if (type === 'enderman') {
+            ctx.fillStyle = '#c084fc';
+            for (let i = 0; i < 4; i++) {
+                const px = cx + Math.sin(frame * 2 + i * 1.8) * 36;
+                const py = headCenterY + Math.cos(frame * 2.5 + i * 1.8) * 32;
+                ctx.fillRect(px, py, 3 * scale, 3 * scale);
+            }
+        }
+
         ctx.restore();
     }
 
